@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - Habit Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="stats.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Bar -->
+        <nav class="nav-bar">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">
+                    <span>🏠</span> Home
+                </a>
+                <a href="stats.html" class="nav-link active">
+                    <span>📊</span> Statistics
+                </a>
+            </div>
+            <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                🌙
+            </button>
+        </nav>
+
+        <!-- Stats Header -->
+        <header class="stats-header">
+            <div class="stats-header-content">
+                <div class="stats-title">
+                    <span class="stats-icon">📊</span>
+                    <h1>Statistics Dashboard</h1>
+                </div>
+                <p class="stats-subtitle">Track your habit progress over time</p>
+            </div>
+            
+            <!-- Streak Highlight -->
+            <div class="streak-highlight">
+                <div class="streak-badge">
+                    <span class="fire-icon">🔥</span>
+                    <div class="streak-info">
+                        <span class="streak-number" id="current-streak">0</span>
+                        <span class="streak-text">Day Streak</span>
+                    </div>
+                </div>
+                <div class="best-streak">
+                    <span class="best-label">Best:</span>
+                    <span class="best-value" id="best-streak">0</span>
+                    <span class="best-text">days</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="stats-main">
+            <!-- Time Period Tabs -->
+            <div class="period-tabs">
+                <button class="period-tab active" data-period="week">
+                    <span class="tab-icon">📅</span>
+                    Weekly
+                </button>
+                <button class="period-tab" data-period="month">
+                    <span class="tab-icon">📆</span>
+                    Monthly
+                </button>
+            </div>
+
+            <!-- Overview Stats Cards -->
+            <section class="overview-section">
+                <h2 class="section-title">
+                    <span class="title-icon">📈</span>
+                    <span id="period-title">Weekly</span> Overview
+                </h2>
+                <div class="overview-grid">
+                    <div class="overview-card glow-card">
+                        <div class="card-icon blue">📋</div>
+                        <div class="card-content">
+                            <span class="card-value counter" id="total-tasks-stat">0</span>
+                            <span class="card-label">Total Tasks</span>
+                        </div>
+                        <div class="card-trend" id="total-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-text">--</span>
+                        </div>
+                    </div>
+                    <div class="overview-card glow-card">
+                        <div class="card-icon green">✅</div>
+                        <div class="card-content">
+                            <span class="card-value counter" id="completed-stat">0</span>
+                            <span class="card-label">Completed</span>
+                        </div>
+                        <div class="card-trend positive" id="completed-trend">
+                            <span class="trend-icon">↑</span>
+                            <span class="trend-text">--</span>
+                        </div>
+                    </div>
+                    <div class="overview-card glow-card">
+                        <div class="card-icon purple">📊</div>
+                        <div class="card-content">
+                            <span class="card-value counter" id="completion-rate-stat">0</span>
+                            <span class="card-suffix">%</span>
+                            <span class="card-label">Completion Rate</span>
+                        </div>
+                        <div class="card-trend" id="rate-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-text">--</span>
+                        </div>
+                    </div>
+                    <div class="overview-card glow-card">
+                        <div class="card-icon orange">⭐</div>
+                        <div class="card-content">
+                            <span class="card-value" id="best-day-stat">--</span>
+                            <span class="card-label">Best Day</span>
+                        </div>
+                        <div class="card-subtext" id="best-day-rate">--</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Completion Chart Section -->
+            <section class="chart-section">
+                <div class="chart-header">
+                    <h2 class="section-title">
+                        <span class="title-icon">📉</span>
+                        Completion Progress
+                    </h2>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-color completed"></span>
+                            <span>Completed</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color pending"></span>
+                            <span>Pending</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <div class="bar-chart" id="completion-chart">
+                        <!-- Chart bars will be rendered here -->
+                    </div>
+                    <div class="chart-x-axis" id="chart-x-labels">
+                        <!-- X-axis labels will be rendered here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Detailed Stats Section -->
+            <section class="detailed-section">
+                <div class="detailed-grid">
+                    <!-- Best & Worst Days Card -->
+                    <div class="detail-card glow-card">
+                        <h3 class="detail-title">
+                            <span class="detail-icon">🏆</span>
+                            Performance Highlights
+                        </h3>
+                        <div class="highlight-list">
+                            <div class="highlight-item best">
+                                <div class="highlight-badge">🥇</div>
+                                <div class="highlight-info">
+                                    <span class="highlight-label">Best Day</span>
+                                    <span class="highlight-value" id="highlight-best-day">--</span>
+                                </div>
+                                <div class="highlight-rate" id="highlight-best-rate">--%</div>
+                            </div>
+                            <div class="highlight-item worst">
+                                <div class="highlight-badge">📉</div>
+                                <div class="highlight-info">
+                                    <span class="highlight-label">Needs Improvement</span>
+                                    <span class="highlight-value" id="highlight-worst-day">--</span>
+                                </div>
+                                <div class="highlight-rate" id="highlight-worst-rate">--%</div>
+                            </div>
+                            <div class="highlight-item average">
+                                <div class="highlight-badge">📊</div>
+                                <div class="highlight-info">
+                                    <span class="highlight-label">Average Rate</span>
+                                    <span class="highlight-value">Per Day</span>
+                                </div>
+                                <div class="highlight-rate" id="highlight-avg-rate">--%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Streak Visualization Card -->
+                    <div class="detail-card glow-card">
+                        <h3 class="detail-title">
+                            <span class="detail-icon">🔥</span>
+                            Streak History
+                        </h3>
+                        <div class="streak-visual">
+                            <div class="streak-calendar" id="streak-calendar">
+                                <!-- Calendar will be rendered here -->
+                            </div>
+                            <div class="streak-stats">
+                                <div class="streak-stat">
+                                    <span class="streak-stat-value" id="perfect-days">0</span>
+                                    <span class="streak-stat-label">Perfect Days</span>
+                                </div>
+                                <div class="streak-stat">
+                                    <span class="streak-stat-value" id="active-days">0</span>
+                                    <span class="streak-stat-label">Active Days</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Weekly Comparison Section -->
+            <section class="comparison-section">
+                <h2 class="section-title">
+                    <span class="title-icon">⚖️</span>
+                    Week vs Previous Week
+                </h2>
+                <div class="comparison-container">
+                    <div class="comparison-card">
+                        <div class="comparison-header">
+                            <span class="comparison-label">This Week</span>
+                            <span class="comparison-value" id="this-week-rate">0%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill this-week" id="this-week-bar"></div>
+                        </div>
+                    </div>
+                    <div class="comparison-vs">VS</div>
+                    <div class="comparison-card">
+                        <div class="comparison-header">
+                            <span class="comparison-label">Last Week</span>
+                            <span class="comparison-value" id="last-week-rate">0%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill last-week" id="last-week-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="comparison-summary" id="comparison-summary">
+                    <span class="summary-icon">📈</span>
+                    <span class="summary-text">Keep building your habits!</span>
+                </div>
+            </section>
+
+            <!-- Habits Breakdown -->
+            <section class="breakdown-section">
+                <h2 class="section-title">
+                    <span class="title-icon">📋</span>
+                    Habits Breakdown
+                </h2>
+                <div class="breakdown-list" id="habits-breakdown">
+                    <!-- Individual habit stats will be rendered here -->
+                </div>
+                <div class="breakdown-empty" id="breakdown-empty">
+                    <span class="empty-icon">📝</span>
+                    <p>No habits data available yet. Start tracking to see your progress!</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Build better habits, one day at a time 💪</p>
+        </footer>
+    </div>
+
+    <script src="stats.js"></script>
+</body>
+</html>
