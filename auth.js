@@ -20,6 +20,7 @@ import {
     signInWithEmailAndPassword,
     signOut,
     sendPasswordResetEmail,
+    sendEmailVerification,
     onAuthStateChanged,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -35,12 +36,13 @@ import {
 // Firebase Configuration
 // ========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyBskAqU-j2lbMLpYuZUBKzxLUGh5jzTQ",
+    apiKey: "AIzaSyBskaqU-j2LbMlPyUuZUBKzxlUzGh5jzTQ",
     authDomain: "habit-tracker-a34d0.firebaseapp.com",
     projectId: "habit-tracker-a34d0",
-    storageBucket: "habit-tracker-a34d0.appspot.com",
+    storageBucket: "habit-tracker-a34d0.firebasestorage.app",
     messagingSenderId: "550617578412",
-    appId: "1:550617578412:web:3b12fd2c3bb968c7fc9809"
+    appId: "1:550617578412:web:3b12fd2c3bb968c7fc9809",
+    measurementId: "G-9LBX0LDEJD"
 };
 
 // ========================================
@@ -99,16 +101,23 @@ const elements = {
 const errorMessages = {
     'auth/email-already-in-use': 'This email is already registered. Try logging in instead.',
     'auth/invalid-email': 'Please enter a valid email address.',
-    'auth/operation-not-allowed': 'Email/password accounts are not enabled.',
-    'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
-    'auth/user-disabled': 'This account has been disabled.',
+    'auth/operation-not-allowed': 'Email/password sign-in is not enabled. Please contact support.',
+    'auth/weak-password': 'Password is too weak. Use at least 6 characters with letters and numbers.',
+    'auth/user-disabled': 'This account has been disabled. Please contact support.',
     'auth/user-not-found': 'No account found with this email.',
     'auth/wrong-password': 'Incorrect password. Please try again.',
     'auth/invalid-credential': 'Invalid email or password. Please check and try again.',
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-    'auth/network-request-failed': 'Network error. Please check your connection.',
+    'auth/network-request-failed': 'Network error. Please check your internet connection.',
     'auth/popup-closed-by-user': 'Sign-in popup was closed before completing.',
     'auth/requires-recent-login': 'Please log in again to complete this action.',
+    'auth/invalid-api-key': 'Configuration error. Please contact support.',
+    'auth/app-deleted': 'Authentication service unavailable.',
+    'auth/expired-action-code': 'This link has expired. Please request a new one.',
+    'auth/invalid-action-code': 'This link is invalid. Please request a new one.',
+    'auth/missing-email': 'Please enter your email address.',
+    'auth/missing-password': 'Please enter your password.',
+    'auth/internal-error': 'An internal error occurred. Please try again.',
     'default': 'An error occurred. Please try again.'
 };
 
@@ -147,6 +156,116 @@ function showMessage(message, type = 'error') {
  */
 function getErrorMessage(errorCode) {
     return errorMessages[errorCode] || errorMessages['default'];
+}
+
+/**
+ * Show email verification message with resend button
+ * @param {string} email - User's email address
+ */
+function showVerificationMessage(email) {
+    // Store email for resend functionality
+    localStorage.setItem('pendingVerificationEmail', email);
+    
+    // Create or show verification banner
+    let verificationBanner = document.getElementById('verification-banner');
+    
+    if (!verificationBanner) {
+        verificationBanner = document.createElement('div');
+        verificationBanner.id = 'verification-banner';
+        verificationBanner.className = 'verification-banner';
+        verificationBanner.innerHTML = `
+            <div class="verification-content">
+                <span class="verification-icon">📧</span>
+                <div class="verification-text">
+                    <strong>Verify your email</strong>
+                    <p>A verification link was sent to <strong>${email}</strong></p>
+                </div>
+            </div>
+            <button type="button" class="resend-btn" id="resend-verification-btn">
+                <span class="resend-text">Resend Email</span>
+                <span class="resend-loader"></span>
+            </button>
+        `;
+        
+        // Insert after the auth message
+        const authMessage = document.getElementById('auth-message');
+        if (authMessage) {
+            authMessage.parentNode.insertBefore(verificationBanner, authMessage.nextSibling);
+        }
+        
+        // Add resend click handler
+        document.getElementById('resend-verification-btn').addEventListener('click', handleResendVerification);
+    } else {
+        // Update email in existing banner
+        verificationBanner.querySelector('.verification-text p strong').textContent = email;
+    }
+    
+    verificationBanner.classList.add('show');
+}
+
+/**
+ * Handle resend verification email
+ */
+async function handleResendVerification() {
+    const email = localStorage.getItem('pendingVerificationEmail');
+    const password = elements.loginPassword?.value || elements.signupPassword?.value;
+    
+    if (!email) {
+        showMessage('Please enter your email and try again.', 'error');
+        return;
+    }
+    
+    const resendBtn = document.getElementById('resend-verification-btn');
+    resendBtn.classList.add('loading');
+    resendBtn.disabled = true;
+    
+    try {
+        // We need to temporarily sign in to resend verification
+        if (!password) {
+            showMessage('Please enter your password to resend verification email.', 'info');
+            resendBtn.classList.remove('loading');
+            resendBtn.disabled = false;
+            return;
+        }
+        
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (user.emailVerified) {
+            showMessage('Your email is already verified! You can now log in.', 'success');
+            document.getElementById('verification-banner')?.classList.remove('show');
+            await signOut(auth);
+            return;
+        }
+        
+        await sendEmailVerification(user);
+        await signOut(auth);
+        
+        showMessage('Verification email sent! Please check your inbox.', 'success');
+        
+        // Disable button for 60 seconds to prevent spam
+        resendBtn.innerHTML = '<span class="resend-text">Sent! Wait 60s</span>';
+        let countdown = 60;
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            resendBtn.innerHTML = `<span class="resend-text">Wait ${countdown}s</span>`;
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                resendBtn.innerHTML = `
+                    <span class="resend-text">Resend Email</span>
+                    <span class="resend-loader"></span>
+                `;
+                resendBtn.disabled = false;
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Resend verification error:', error.code, error.message);
+        showMessage(getErrorMessage(error.code), 'error');
+        resendBtn.disabled = false;
+    } finally {
+        resendBtn.classList.remove('loading');
+    }
 }
 
 /**
@@ -302,6 +421,11 @@ async function handleSignup(e) {
         return;
     }
     
+    if (!email) {
+        showMessage('Please enter your email address.', 'error');
+        return;
+    }
+    
     if (password !== confirmPassword) {
         showMessage('Passwords do not match.', 'error');
         return;
@@ -316,25 +440,38 @@ async function handleSignup(e) {
     setButtonLoading(submitBtn, true);
     
     try {
+        console.log('🔄 Creating user account...');
+        
         // Create user with Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
+        console.log('✅ User created:', user.uid);
+        
         // Update display name
         await updateProfile(user, { displayName: name });
+        console.log('✅ Profile updated with name:', name);
+        
+        // Send email verification
+        await sendEmailVerification(user);
+        console.log('✅ Verification email sent to:', email);
         
         // Create user document in Firestore
         await createUserDocument(user, name);
+        console.log('✅ Firestore document created');
         
-        showMessage('Account created successfully! Redirecting...', 'success');
+        // Sign out the user so they must verify email first
+        await signOut(auth);
         
-        // Redirect to main page after short delay
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1500);
+        showMessage('Account created! Please check your email to verify your account before logging in.', 'success');
+        
+        // Show resend verification option
+        showVerificationMessage(email);
+        
+        setButtonLoading(submitBtn, false);
         
     } catch (error) {
-        console.error("Signup error:", error);
+        console.error('❌ Signup error:', error.code, error.message);
         showMessage(getErrorMessage(error.code), 'error');
         setButtonLoading(submitBtn, false);
     }
@@ -359,11 +496,25 @@ async function handleLogin(e) {
     setButtonLoading(submitBtn, true);
     
     try {
+        console.log('🔄 Logging in...');
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
+        console.log('✅ User authenticated:', user.uid);
+        
+        // Check if email is verified
+        if (!user.emailVerified) {
+            console.log('⚠️ Email not verified');
+            await signOut(auth);
+            showVerificationMessage(email);
+            showMessage('Please verify your email before logging in. Check your inbox for the verification link.', 'error');
+            setButtonLoading(submitBtn, false);
+            return;
+        }
+        
         // Update last login
         await updateLastLogin(user.uid);
+        console.log('✅ Last login updated');
         
         showMessage('Login successful! Redirecting...', 'success');
         
@@ -373,7 +524,7 @@ async function handleLogin(e) {
         }, 1000);
         
     } catch (error) {
-        console.error("Login error:", error);
+        console.error('❌ Login error:', error.code, error.message);
         showMessage(getErrorMessage(error.code), 'error');
         setButtonLoading(submitBtn, false);
     }
@@ -431,15 +582,18 @@ async function handleLogout() {
 
 /**
  * Check if user is already logged in
- * Redirect to main page if authenticated
+ * Redirect to main page if authenticated and verified
  */
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // User is signed in, redirect to main page if on login page
+    if (user && user.emailVerified) {
+        // User is signed in and verified, redirect to main page if on login page
         if (window.location.pathname.includes('login.html')) {
-            console.log("User already logged in, redirecting...");
+            console.log("✅ User already logged in and verified, redirecting...");
             window.location.href = 'index.html';
         }
+    } else if (user && !user.emailVerified) {
+        console.log("⚠️ User exists but email not verified");
+        // Don't redirect, let them verify first
     }
 });
 

@@ -319,8 +319,8 @@
             const loadingScreen = document.getElementById('auth-loading');
             const appContainer = document.getElementById('app-container');
             
-            if (user) {
-                // User is signed in
+            if (user && user.emailVerified) {
+                // User is signed in and verified
                 loadingScreen.style.display = 'none';
                 appContainer.style.display = 'block';
                 
@@ -333,6 +333,10 @@
                 userInitial.textContent = displayName.charAt(0).toUpperCase();
                 dropdownName.textContent = displayName;
                 dropdownEmail.textContent = user.email;
+            } else if (user && !user.emailVerified) {
+                // User exists but email not verified
+                signOut(auth);
+                window.location.href = 'login.html';
             } else {
                 // User is not signed in, redirect to login
                 window.location.href = 'login.html';

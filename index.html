@@ -284,12 +284,13 @@
 
         // Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyBskAqU-j2lbMLpYuZUBKzxLUGh5jzTQ",
+            apiKey: "AIzaSyBskaqU-j2LbMlPyUuZUBKzxlUzGh5jzTQ",
             authDomain: "habit-tracker-a34d0.firebaseapp.com",
             projectId: "habit-tracker-a34d0",
-            storageBucket: "habit-tracker-a34d0.appspot.com",
+            storageBucket: "habit-tracker-a34d0.firebasestorage.app",
             messagingSenderId: "550617578412",
-            appId: "1:550617578412:web:3b12fd2c3bb968c7fc9809"
+            appId: "1:550617578412:web:3b12fd2c3bb968c7fc9809",
+            measurementId: "G-9LBX0LDEJD"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -310,8 +311,8 @@
         onAuthStateChanged(auth, (user) => {
             authLoading.style.display = 'none';
             
-            if (user) {
-                // User is signed in
+            if (user && user.emailVerified) {
+                // User is signed in and email is verified
                 appContainer.style.display = 'block';
                 
                 // Update user info
@@ -321,6 +322,11 @@
                 dropdownEmail.textContent = user.email;
                 
                 console.log("✅ User logged in:", user.email);
+            } else if (user && !user.emailVerified) {
+                // User exists but email not verified
+                console.log("⚠️ Email not verified, redirecting to login...");
+                signOut(auth);
+                window.location.href = 'login.html';
             } else {
                 // User is not signed in, redirect to login
                 console.log("❌ User not logged in, redirecting...");
