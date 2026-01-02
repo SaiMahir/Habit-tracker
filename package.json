@@ -1,0 +1,26 @@
+{
+  "name": "habit-tracker",
+  "version": "1.0.0",
+  "description": "A modern, feature-rich habit tracking web application built with vanilla HTML, CSS, and JavaScript.",
+  "main": "script.js",
+  "scripts": {
+    "start": "live-server --port=3000 --open=index.html",
+    "dev": "live-server --port=3000 --open=index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaiMahir/Habit-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SaiMahir/Habit-tracker/issues"
+  },
+  "homepage": "https://github.com/SaiMahir/Habit-tracker#readme",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
