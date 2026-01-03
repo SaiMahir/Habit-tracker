@@ -190,6 +190,49 @@
                 </button>
             </form>
 
+            <!-- Verification Email Sent Screen -->
+            <div id="verification-sent-screen" class="verification-sent-screen">
+                <div class="verification-success-icon">
+                    <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-dasharray="63" stroke-dashoffset="0" class="circle-anim"/>
+                        <path d="M8 12l2.5 2.5L16 9" stroke-dasharray="20" stroke-dashoffset="0" class="check-anim"/>
+                    </svg>
+                </div>
+                <h2 class="verification-title">Verification Email Sent!</h2>
+                <p class="verification-email-target">
+                    We've sent a verification link to<br>
+                    <strong id="verification-email-display">your@email.com</strong>
+                </p>
+                <div class="verification-instructions">
+                    <div class="instruction-item">
+                        <span class="instruction-number">1</span>
+                        <span>Check your inbox for the verification email</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-number">2</span>
+                        <span>Click the verification link in the email</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-number">3</span>
+                        <span>Return here and log in with your account</span>
+                    </div>
+                </div>
+                <div class="verification-actions">
+                    <button type="button" id="resend-email-btn" class="auth-btn secondary" disabled>
+                        <span class="btn-text">Resend Email</span>
+                        <span class="btn-timer" id="resend-timer"></span>
+                        <span class="btn-loader"></span>
+                    </button>
+                    <button type="button" id="back-to-login-from-verify" class="auth-btn primary">
+                        <span class="btn-text">Back to Login</span>
+                    </button>
+                </div>
+                <p class="verification-hint">
+                    <span class="hint-icon">💡</span>
+                    Didn't receive the email? Check your spam folder or try resending.
+                </p>
+            </div>
+
             <!-- Error/Success Messages -->
             <div class="auth-message" id="auth-message">
                 <span class="message-icon"></span>

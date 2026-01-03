@@ -1,0 +1,792 @@
+/**
+ * Weekly View Styles
+ * Additional styles specific to the weekly view page
+ */
+
+/* ========================================
+   Header Subtitle
+   ======================================== */
+.header-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-top: 8px;
+}
+
+/* ========================================
+   Day Tabs Section
+   ======================================== */
+.day-tabs-section {
+    margin-bottom: 24px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+.day-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+    margin: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+}
+
+.day-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.day-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 70px;
+    flex-shrink: 0;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.day-tab:hover {
+    border-color: var(--primary-light);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.day-tab.selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: var(--glow-green);
+}
+
+.day-tab.selected .day-tab-name,
+.day-tab.selected .day-tab-count {
+    color: white;
+}
+
+.day-tab.today {
+    border-color: var(--accent-cyan);
+}
+
+.day-tab.today.selected {
+    border-color: var(--primary-color);
+}
+
+.day-tab-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.day-tab-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.day-tab.selected .day-tab-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Today dot indicator */
+.today-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.day-tab.selected .today-dot {
+    background: white;
+    box-shadow: 0 0 8px white;
+}
+
+/* ========================================
+   Selected Day Section
+   ======================================== */
+.selected-day-section {
+    margin-bottom: 24px;
+}
+
+.selected-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.selected-day-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.today-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    background: var(--accent-cyan);
+    color: white;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.habit-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: var(--bg-elevated);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+}
+
+/* ========================================
+   Weekly Habits Section
+   ======================================== */
+.weekly-habits-section {
+    margin-bottom: 32px;
+}
+
+.weekly-habits-section .habit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.habit-day-indicator {
+    flex-shrink: 0;
+}
+
+.habit-time-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* ========================================
+   Weekly Summary Section
+   ======================================== */
+.weekly-summary-section {
+    margin-bottom: 32px;
+    overflow-x: auto;
+    overflow-y: visible;
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 8px;
+}
+
+.weekly-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.summary-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.summary-card:hover {
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+.summary-card.selected {
+    border-color: var(--primary-color);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.summary-card.today {
+    border-color: var(--accent-cyan);
+}
+
+.summary-card.empty {
+    opacity: 0.6;
+}
+
+.summary-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.summary-day-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.today-indicator {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    background: var(--accent-cyan);
+    color: white;
+    border-radius: var(--radius-full);
+}
+
+.summary-count {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.summary-card.empty .summary-count {
+    color: var(--text-muted);
+}
+
+.summary-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.summary-preview {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summary-preview.empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* ========================================
+   Empty State Adjustments
+   ======================================== */
+.weekly-habits-section .empty-state {
+    padding: 40px 20px;
+}
+
+.weekly-habits-section .empty-state .btn {
+    margin-top: 16px;
+}
+
+/* ========================================
+   Responsive Adjustments
+   ======================================== */
+@media (max-width: 768px) {
+    .weekly-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .summary-card {
+        padding: 14px 10px;
+    }
+    
+    .summary-count {
+        font-size: 1.5rem;
+    }
+    
+    .summary-preview {
+        font-size: 0.7rem;
+    }
+    
+    .day-tab {
+        min-width: 60px;
+        padding: 10px 12px;
+    }
+    
+    .day-tab-name {
+        font-size: 0.8rem;
+    }
+    
+    .selected-day-header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    
+    .selected-day-title {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .weekly-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .summary-card {
+        padding: 12px 8px;
+    }
+    
+    .summary-day-name {
+        font-size: 0.7rem;
+    }
+    
+    .summary-count {
+        font-size: 1.3rem;
+    }
+    
+    .summary-label {
+        font-size: 0.65rem;
+    }
+    
+    .summary-preview {
+        font-size: 0.65rem;
+        max-width: 100%;
+    }
+    
+    .day-tabs {
+        gap: 6px;
+    }
+    
+    .day-tab {
+        min-width: 50px;
+        padding: 8px 10px;
+    }
+    
+    .day-tab-name {
+        font-size: 0.75rem;
+    }
+    
+    .day-tab-count {
+        font-size: 0.65rem;
+        padding: 1px 6px;
+    }
+    
+    .summary-card {
+        padding: 12px 8px;
+    }
+    
+    .summary-day-name {
+        font-size: 0.65rem;
+    }
+    
+    .summary-count {
+        font-size: 1.5rem;
+    }
+}
+
+/* ========================================
+   Keyboard Navigation Hint
+   ======================================== */
+.keyboard-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+.keyboard-hint kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.7rem;
+}
+
+/* ========================================
+   Desktop Layout Improvements
+   ======================================== 
+   
+   GOALS:
+   - Reduce excessive whitespace on wide screens
+   - Make better use of available horizontal space
+   - Keep mobile/tablet layout unchanged
+   - Create a more "app-like" feel similar to Notion/Linear
+   
+   APPROACH:
+   - Increase max-width for desktop
+   - Use 2-column layout: week nav (left) + habits (right)
+   - Stronger shadows for better card definition
+   - Better spacing and padding on larger screens
+   ======================================== */
+
+/* ----------------------------------------
+   Desktop Container - Wider max-width
+   Only applies on screens ≥1024px
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    /* Override app-container for weekly page specifically */
+    body:has(.weekly-habits-section) .app-container {
+        max-width: 1200px;
+        padding: 24px 40px;
+    }
+    
+    /* Main content area - enable 2-column grid */
+    .main-content {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+            "daytabs daytabs"
+            "summary selected"
+            "summary habits";
+        gap: 24px;
+        align-items: start;
+    }
+    
+    /* Day tabs section - spans full width */
+    .day-tabs-section {
+        grid-area: daytabs;
+        margin-bottom: 0;
+    }
+    
+    /* Weekly summary - left column */
+    .weekly-summary-section {
+        grid-area: summary;
+        position: sticky;
+        top: 24px;
+        margin-bottom: 0;
+    }
+    
+    /* Selected day info - right column header */
+    .selected-day-section {
+        grid-area: selected;
+        margin-bottom: 0;
+    }
+    
+    /* Habits list - right column content */
+    .weekly-habits-section {
+        grid-area: habits;
+        margin-bottom: 0;
+    }
+}
+
+/* ----------------------------------------
+   Desktop - Day Tabs Enhancement
+   Full width, more prominent styling
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    .day-tabs-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 16px 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .day-tabs {
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .day-tab {
+        min-width: 100px;
+        padding: 14px 20px;
+    }
+    
+    .day-tab-name {
+        font-size: 0.95rem;
+    }
+    
+    .day-tab-count {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+    }
+}
+
+/* ----------------------------------------
+   Desktop - Weekly Summary (Left Column)
+   Vertical layout, acts as navigation
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    .weekly-summary-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .weekly-summary-section .section-title {
+        font-size: 1rem;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    /* Change grid to single column for sidebar */
+    .weekly-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    /* Summary cards - horizontal layout in sidebar */
+    .summary-card {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        text-align: left;
+    }
+    
+    .summary-card-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 0;
+    }
+    
+    .summary-day-name {
+        font-size: 0.85rem;
+        min-width: 45px;
+    }
+    
+    .today-indicator {
+        font-size: 0.55rem;
+        padding: 2px 5px;
+    }
+    
+    .summary-count {
+        font-size: 1.25rem;
+    }
+    
+    .summary-label {
+        display: none; /* Hide "habits" label in sidebar */
+    }
+    
+    .summary-preview {
+        display: none; /* Hide preview in compact sidebar view */
+    }
+}
+
+/* ----------------------------------------
+   Desktop - Selected Day Section
+   More prominent header
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    .selected-day-header {
+        padding: 20px 24px;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .selected-day-title {
+        font-size: 1.75rem;
+    }
+    
+    .habit-count {
+        font-size: 0.95rem;
+        padding: 8px 18px;
+    }
+}
+
+/* ----------------------------------------
+   Desktop - Habits Section
+   Better card styling and spacing
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    .weekly-habits-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+        min-height: 400px;
+    }
+    
+    .weekly-habits-section .habits-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .weekly-habits-section .habit-item {
+        padding: 18px 20px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-fast);
+    }
+    
+    .weekly-habits-section .habit-item:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .weekly-habits-section .empty-state {
+        padding: 60px 40px;
+    }
+}
+
+/* ----------------------------------------
+   Desktop - Header Enhancement
+   Wider and more balanced
+   ---------------------------------------- */
+@media (min-width: 1024px) {
+    body:has(.weekly-habits-section) .header {
+        padding: 36px 40px;
+    }
+    
+    body:has(.weekly-habits-section) .header-content {
+        max-width: none;
+    }
+    
+    body:has(.weekly-habits-section) .logo h1 {
+        font-size: 2rem;
+    }
+    
+    body:has(.weekly-habits-section) .header-subtitle {
+        font-size: 1.05rem;
+        margin-top: 10px;
+    }
+}
+
+/* ----------------------------------------
+   Large Desktop (≥1400px) - Even wider
+   For ultra-wide monitors
+   ---------------------------------------- */
+@media (min-width: 1400px) {
+    body:has(.weekly-habits-section) .app-container {
+        max-width: 1400px;
+        padding: 24px 60px;
+    }
+    
+    .main-content {
+        grid-template-columns: 320px 1fr;
+        gap: 32px;
+    }
+    
+    .day-tab {
+        min-width: 120px;
+        padding: 16px 24px;
+    }
+}
+
+/* ========================================
+   Light Mode - Desktop Specific
+   ======================================== */
+@media (min-width: 1024px) {
+    [data-theme="light"] .day-tabs-section {
+        background: var(--bg-card);
+        box-shadow: var(--shadow-md);
+    }
+    
+    [data-theme="light"] .weekly-summary-section {
+        background: var(--bg-card);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    [data-theme="light"] .weekly-habits-section {
+        background: var(--bg-card);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    [data-theme="light"] .weekly-habits-section .habit-item {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-color);
+    }
+    
+    [data-theme="light"] .weekly-habits-section .habit-item:hover {
+        background: var(--bg-card);
+        box-shadow: var(--shadow-md);
+    }
+}
+
+/* ========================================
+   Light Mode Overrides - Weekly Page
+   ======================================== 
+   
+   Clean design with subtle shadows and borders.
+   No glows or gradients in light mode.
+   ======================================== */
+
+/* Day tabs - Clean white inactive, solid green active */
+[data-theme="light"] .day-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .day-tab:hover {
+    border-color: var(--primary-color);
+    background: rgba(22, 163, 74, 0.05);
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .day-tab.selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+    /* No glow in light mode */
+}
+
+[data-theme="light"] .day-tab.today {
+    border-color: var(--primary-color);
+}
+
+[data-theme="light"] .day-tab-count {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .day-tab.selected .day-tab-count {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: transparent;
+}
+
+/* Weekly sections - Clean white cards */
+[data-theme="light"] .weekly-content-section,
+[data-theme="light"] .weekly-habits-section,
+[data-theme="light"] .summary-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Summary cards */
+[data-theme="light"] .summary-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .summary-card.today {
+    border-color: var(--primary-color);
+    background: rgba(22, 163, 74, 0.05);
+}
+
+/* Keyboard hint */
+[data-theme="light"] .keyboard-hint kbd {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+

@@ -36,7 +36,7 @@ import {
 // Firebase Configuration
 // ========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyBskaqU-j2LbMlPyUuZUBKzxlUzGh5jzTQ",
+    apiKey: "AIzaSyBskaqU-j2lbMlPyUuZUBKzxlUzGh5jzTQ",
     authDomain: "habit-tracker-a34d0.firebaseapp.com",
     projectId: "habit-tracker-a34d0",
     storageBucket: "habit-tracker-a34d0.firebasestorage.app",
@@ -79,6 +79,7 @@ const elements = {
     
     // Tabs
     authTabs: document.querySelectorAll('.auth-tab'),
+    authTabsContainer: document.querySelector('.auth-tabs'),
     
     // Message display
     authMessage: document.getElementById('auth-message'),
@@ -92,7 +93,18 @@ const elements = {
     
     // Forgot password link
     forgotPasswordLink: document.getElementById('forgot-password-link'),
-    backToLoginBtn: document.getElementById('back-to-login-btn')
+    backToLoginBtn: document.getElementById('back-to-login-btn'),
+    
+    // Verification screen elements
+    verificationSentScreen: document.getElementById('verification-sent-screen'),
+    verificationEmailDisplay: document.getElementById('verification-email-display'),
+    resendEmailBtn: document.getElementById('resend-email-btn'),
+    resendTimer: document.getElementById('resend-timer'),
+    backToLoginFromVerify: document.getElementById('back-to-login-from-verify'),
+    
+    // Other elements to hide/show
+    authDivider: document.querySelector('.auth-divider'),
+    socialLogin: document.querySelector('.social-login')
 };
 
 // ========================================
@@ -158,8 +170,184 @@ function getErrorMessage(errorCode) {
     return errorMessages[errorCode] || errorMessages['default'];
 }
 
+// ========================================
+// Verification Screen State
+// ========================================
+let verificationState = {
+    email: '',
+    password: '',
+    resendCooldown: 0,
+    cooldownTimer: null
+};
+
 /**
- * Show email verification message with resend button
+ * Show the verification email sent screen
+ * @param {string} email - User's email address
+ * @param {string} password - User's password (for resend)
+ */
+function showVerificationScreen(email, password = '') {
+    // Store credentials for resend
+    verificationState.email = email;
+    verificationState.password = password;
+    localStorage.setItem('pendingVerificationEmail', email);
+    
+    // Update display email
+    if (elements.verificationEmailDisplay) {
+        elements.verificationEmailDisplay.textContent = email;
+    }
+    
+    // Hide all forms and tabs
+    elements.loginForm.classList.remove('active');
+    elements.signupForm.classList.remove('active');
+    elements.forgotPasswordForm.classList.remove('active');
+    elements.authMessage.classList.remove('show');
+    
+    // Hide tabs, divider, and social login
+    if (elements.authTabsContainer) elements.authTabsContainer.style.display = 'none';
+    if (elements.authDivider) elements.authDivider.style.display = 'none';
+    if (elements.socialLogin) elements.socialLogin.style.display = 'none';
+    
+    // Show verification screen
+    elements.verificationSentScreen.classList.add('show');
+    
+    // Start resend cooldown (60 seconds)
+    startResendCooldown(60);
+}
+
+/**
+ * Hide the verification screen and return to login
+ */
+function hideVerificationScreen() {
+    // Hide verification screen
+    elements.verificationSentScreen.classList.remove('show');
+    
+    // Show tabs, divider, and social login
+    if (elements.authTabsContainer) elements.authTabsContainer.style.display = 'flex';
+    if (elements.authDivider) elements.authDivider.style.display = 'flex';
+    if (elements.socialLogin) elements.socialLogin.style.display = 'flex';
+    
+    // Clear cooldown timer
+    if (verificationState.cooldownTimer) {
+        clearInterval(verificationState.cooldownTimer);
+        verificationState.cooldownTimer = null;
+    }
+    
+    // Switch to login form
+    switchForm('login');
+    
+    // Pre-fill email
+    if (verificationState.email && elements.loginEmail) {
+        elements.loginEmail.value = verificationState.email;
+    }
+}
+
+/**
+ * Start the resend button cooldown timer
+ * @param {number} seconds - Cooldown duration in seconds
+ */
+function startResendCooldown(seconds) {
+    verificationState.resendCooldown = seconds;
+    
+    // Disable resend button
+    if (elements.resendEmailBtn) {
+        elements.resendEmailBtn.disabled = true;
+        updateResendButtonText();
+    }
+    
+    // Clear existing timer
+    if (verificationState.cooldownTimer) {
+        clearInterval(verificationState.cooldownTimer);
+    }
+    
+    // Start countdown
+    verificationState.cooldownTimer = setInterval(() => {
+        verificationState.resendCooldown--;
+        updateResendButtonText();
+        
+        if (verificationState.resendCooldown <= 0) {
+            clearInterval(verificationState.cooldownTimer);
+            verificationState.cooldownTimer = null;
+            elements.resendEmailBtn.disabled = false;
+        }
+    }, 1000);
+}
+
+/**
+ * Update the resend button text based on cooldown state
+ */
+function updateResendButtonText() {
+    if (!elements.resendEmailBtn || !elements.resendTimer) return;
+    
+    const btnText = elements.resendEmailBtn.querySelector('.btn-text');
+    
+    if (verificationState.resendCooldown > 0) {
+        elements.resendTimer.textContent = `(${verificationState.resendCooldown}s)`;
+        if (btnText) btnText.textContent = 'Resend Email';
+    } else {
+        elements.resendTimer.textContent = '';
+        if (btnText) btnText.textContent = 'Resend Email';
+    }
+}
+
+/**
+ * Handle resend verification email from the new screen
+ */
+async function handleResendFromScreen() {
+    const email = verificationState.email || localStorage.getItem('pendingVerificationEmail');
+    const password = verificationState.password;
+    
+    if (!email) {
+        showMessage('Unable to resend. Please sign up again.', 'error');
+        return;
+    }
+    
+    // Set loading state
+    if (elements.resendEmailBtn) {
+        elements.resendEmailBtn.classList.add('loading');
+        elements.resendEmailBtn.disabled = true;
+    }
+    
+    try {
+        if (!password) {
+            showMessage('Session expired. Please sign up again or log in to resend verification.', 'info');
+            if (elements.resendEmailBtn) {
+                elements.resendEmailBtn.classList.remove('loading');
+            }
+            return;
+        }
+        
+        // Sign in temporarily to resend verification
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (user.emailVerified) {
+            showMessage('Your email is already verified! You can now log in.', 'success');
+            await signOut(auth);
+            setTimeout(() => hideVerificationScreen(), 1500);
+            return;
+        }
+        
+        // Send verification email
+        await sendEmailVerification(user);
+        await signOut(auth);
+        
+        showMessage('Verification email sent! Please check your inbox.', 'success');
+        
+        // Start new cooldown
+        startResendCooldown(60);
+        
+    } catch (error) {
+        console.error('❌ Resend verification error:', error.code, error.message);
+        showMessage(getErrorMessage(error.code), 'error');
+    } finally {
+        if (elements.resendEmailBtn) {
+            elements.resendEmailBtn.classList.remove('loading');
+        }
+    }
+}
+
+/**
+ * Show email verification message with resend button (legacy - kept for compatibility)
  * @param {string} email - User's email address
  */
 function showVerificationMessage(email) {
@@ -384,6 +572,22 @@ async function createUserDocument(user, displayName = '') {
         });
         
         console.log("✅ User document created in Firestore");
+        
+        // Create default stats document at users/{userId}/stats/current
+        const statsRef = doc(db, 'users', user.uid, 'stats', 'current');
+        await setDoc(statsRef, {
+            userId: user.uid,
+            streak: 0,
+            bestStreak: 0,
+            lastDate: null,
+            totalHabits: 0,
+            totalCompletions: 0,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        
+        console.log("✅ Default stats document created in Firestore");
+        
     } catch (error) {
         console.error("Error creating user document:", error);
         throw error;
@@ -463,16 +667,22 @@ async function handleSignup(e) {
         // Sign out the user so they must verify email first
         await signOut(auth);
         
-        showMessage('Account created! Please check your email to verify your account before logging in.', 'success');
-        
-        // Show resend verification option
-        showVerificationMessage(email);
+        // Show verification sent screen (new UI)
+        showVerificationScreen(email, password);
         
         setButtonLoading(submitBtn, false);
         
     } catch (error) {
-        console.error('❌ Signup error:', error.code, error.message);
-        showMessage(getErrorMessage(error.code), 'error');
+        console.error('❌ Signup error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        
+        // Show detailed error for debugging
+        const errorMsg = error.code 
+            ? getErrorMessage(error.code) 
+            : `Error: ${error.message || 'Unknown error occurred'}`;
+        showMessage(errorMsg, 'error');
         setButtonLoading(submitBtn, false);
     }
 }
@@ -506,8 +716,8 @@ async function handleLogin(e) {
         if (!user.emailVerified) {
             console.log('⚠️ Email not verified');
             await signOut(auth);
-            showVerificationMessage(email);
-            showMessage('Please verify your email before logging in. Check your inbox for the verification link.', 'error');
+            showVerificationScreen(email, password);
+            showMessage('Please verify your email before logging in.', 'info');
             setButtonLoading(submitBtn, false);
             return;
         }
@@ -635,6 +845,16 @@ function initEventListeners() {
         elements.backToLoginBtn.addEventListener('click', () => {
             switchForm('login');
         });
+    }
+    
+    // Verification screen - Resend email button
+    if (elements.resendEmailBtn) {
+        elements.resendEmailBtn.addEventListener('click', handleResendFromScreen);
+    }
+    
+    // Verification screen - Back to login button
+    if (elements.backToLoginFromVerify) {
+        elements.backToLoginFromVerify.addEventListener('click', hideVerificationScreen);
     }
     
     // Password visibility toggles

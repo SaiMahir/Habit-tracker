@@ -15,42 +15,60 @@
     </div>
 
     <div class="app-container" id="app-container" style="display: none;">
-        <!-- Navigation Bar -->
+        <!-- Navigation Bar - Two Row Layout
+             Row 1 (header-top): Theme toggle + User profile (right-aligned)
+             Row 2 (header-nav): Navigation tabs (horizontally scrollable on mobile)
+             
+             WHY TWO ROWS: Separates utility controls (theme, profile) from 
+             navigation, providing cleaner visual hierarchy and better 
+             mobile UX where tabs can scroll independently.
+        -->
         <nav class="nav-bar">
-            <div class="nav-links">
-                <a href="index.html" class="nav-link active">
-                    <span>🏠</span> Home
-                </a>
-                <a href="stats.html" class="nav-link">
-                    <span>📊</span> Statistics
-                </a>
-            </div>
-            <div class="nav-right">
-                <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
-                    🌙
-                </button>
-                <!-- User Menu -->
-                <div class="user-menu" id="user-menu">
-                    <div class="user-avatar" id="user-avatar" title="Account">
-                        <span id="user-initial">U</span>
-                    </div>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="dropdown-header">
-                            <span class="dropdown-name" id="dropdown-name">User</span>
-                            <span class="dropdown-email" id="dropdown-email">user@email.com</span>
+            <!-- Top Row: Utility Controls -->
+            <div class="header-top">
+                <!-- Left: Greeting & Streak -->
+                <div class="header-top-left">
+                    <span class="header-greeting" id="header-greeting">Good evening</span>
+                    <span class="header-streak" id="header-streak" title="Current streak">
+                        <span class="streak-icon">🔥</span>
+                        <span class="streak-count" id="streak-count">0</span>
+                    </span>
+                </div>
+                <!-- Right: Theme toggle + Profile -->
+                <div class="header-top-right">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                        🌙
+                    </button>
+                    <!-- User Menu -->
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-avatar" id="user-avatar" title="Account">
+                            <span id="user-initial">U</span>
                         </div>
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item" id="profile-btn">
-                            <span>👤</span> Profile
-                        </button>
-                        <button class="dropdown-item" id="settings-btn">
-                            <span>⚙️</span> Settings
-                        </button>
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item logout" id="logout-btn">
-                            <span>🚪</span> Logout
-                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="dropdown-header">
+                                <span class="dropdown-name" id="dropdown-name">User</span>
+                                <span class="dropdown-email" id="dropdown-email">user@email.com</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item logout" id="logout-btn">
+                                <span>🚪</span> Logout
+                            </button>
+                        </div>
                     </div>
+                </div>
+            </div>
+            <!-- Second Row: Navigation Tabs -->
+            <div class="header-nav">
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link active">
+                        <span>🏠</span> Home
+                    </a>
+                    <a href="weekly.html" class="nav-link">
+                        <span>📅</span> Weekly
+                    </a>
+                    <a href="stats.html" class="nav-link" id="statsLink">
+                        <span>📊</span> Statistics
+                    </a>
                 </div>
             </div>
         </nav>
@@ -125,53 +143,126 @@
             </section>
 
             <!-- Add Habit Form (MOVED BELOW HABITS) -->
-            <section class="add-habit-section">
-                <h2 class="section-title">
-                    <span class="title-icon">➕</span>
-                    Add New Habit
-                </h2>
-                <form id="habit-form" class="habit-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="habit-name">
-                                <span class="label-icon">📝</span>
-                                Habit Name*
-                            </label>
-                            <input 
-                                type="text" 
-                                id="habit-name" 
-                                placeholder="e.g., Morning Exercise" 
-                                required
-                            >
+            <section class="add-habit-section" id="add-habit-section">
+                <!-- Collapsible Header -->
+                <div class="add-habit-header" id="add-habit-header" tabindex="0" role="button" aria-expanded="false" aria-controls="add-habit-content">
+                    <h2 class="section-title">
+                        <span class="title-icon">➕</span>
+                        Add New Habit
+                    </h2>
+                    <span class="expand-icon" id="expand-icon">▼</span>
+                </div>
+                
+                <!-- Collapsible Content -->
+                <div class="add-habit-content" id="add-habit-content">
+                    <form id="habit-form" class="habit-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="habit-name">
+                                    <span class="label-icon">📝</span>
+                                    Habit Name* <span class="char-limit">(max 30 chars)</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="habit-name" 
+                                    placeholder="e.g., Morning Exercise" 
+                                    required
+                                    maxlength="30"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label for="habit-time">
+                                    <span class="label-icon">⏰</span>
+                                    Default Time*
+                                </label>
+                                <input 
+                                    type="time" 
+                                    id="habit-time" 
+                                    required
+                                >
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="habit-time">
-                                <span class="label-icon">⏰</span>
-                                Time*
+                            <label for="habit-description">
+                                <span class="label-icon">📋</span>
+                                Description (optional) <span class="char-limit">(max 60 chars)</span>
                             </label>
-                            <input 
-                                type="time" 
-                                id="habit-time" 
-                                required
-                            >
+                            <textarea 
+                                id="habit-description" 
+                                placeholder="Add a brief description..."
+                                rows="2"
+                                maxlength="60"
+                            ></textarea>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="habit-description">
-                            <span class="label-icon">📋</span>
-                            Description (optional)
-                        </label>
-                        <textarea 
-                            id="habit-description" 
-                            placeholder="Add a brief description..."
-                            rows="2"
-                        ></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-icon">✓</span>
-                        Add Habit
-                    </button>
-                </form>
+                        
+                        <!-- Day Selection Section - Select which days this habit repeats -->
+                        <div class="form-group day-selection-section">
+                            <label>
+                                <span class="label-icon">📅</span>
+                                Repeat on Days
+                            </label>
+                            <p class="form-hint">Select days for this habit. Each day can have different settings.</p>
+                            
+                            <!-- Day selector buttons -->
+                            <div class="day-selector">
+                                <button type="button" class="day-btn" data-day="0">Sun</button>
+                                <button type="button" class="day-btn" data-day="1">Mon</button>
+                                <button type="button" class="day-btn" data-day="2">Tue</button>
+                                <button type="button" class="day-btn" data-day="3">Wed</button>
+                                <button type="button" class="day-btn" data-day="4">Thu</button>
+                                <button type="button" class="day-btn" data-day="5">Fri</button>
+                                <button type="button" class="day-btn" data-day="6">Sat</button>
+                            </div>
+                            
+                            <!-- Summary of selected days -->
+                            <p class="selected-days-summary" id="selected-days-summary">
+                                No days selected - habit will be added for today only
+                            </p>
+                            
+                            <!-- Per-day configuration panel -->
+                            <div class="day-config-panel" id="day-config-panel" style="display: none;">
+                                <div class="day-config-header">
+                                    <span class="day-config-title">Sunday Settings</span>
+                                    <button type="button" class="day-config-close" id="close-day-config">×</button>
+                                </div>
+                                <p class="day-config-hint">Customize this day's habit (optional - leave blank to use defaults above)</p>
+                                
+                                <div class="form-group">
+                                    <label for="day-config-name">
+                                        <span class="label-icon">📝</span>
+                                        Habit Name for this day
+                                    </label>
+                                    <input type="text" id="day-config-name" placeholder="Use default name" maxlength="30">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="day-config-time">
+                                        <span class="label-icon">⏰</span>
+                                        Time for this day
+                                    </label>
+                                    <input type="time" id="day-config-time">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="day-config-description">
+                                        <span class="label-icon">📋</span>
+                                        Description for this day
+                                    </label>
+                                    <textarea id="day-config-description" rows="2" placeholder="Use default description" maxlength="60"></textarea>
+                                </div>
+                                
+                                <button type="button" class="btn btn-sm btn-secondary" id="save-day-config">
+                                    ✓ Save Day Settings
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="add-habit-btn">
+                            <span class="btn-icon">✓</span>
+                            Add Habit
+                        </button>
+                    </form>
+                </div>
             </section>
 
             <!-- Statistics Section -->
@@ -240,7 +331,7 @@
                     <div class="form-group">
                         <label for="edit-habit-time">
                             <span class="label-icon">⏰</span>
-                            Time*
+                            Default Time*
                         </label>
                         <input 
                             type="time" 
@@ -258,6 +349,9 @@
                             rows="2"
                         ></textarea>
                     </div>
+                    
+                    <!-- Group info will be injected here by JavaScript -->
+                    
                     <div class="modal-actions">
                         <button type="button" class="btn btn-secondary" id="cancel-edit">
                             Cancel
@@ -284,7 +378,7 @@
 
         // Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyBskaqU-j2LbMlPyUuZUBKzxlUzGh5jzTQ",
+            apiKey: "AIzaSyBskaqU-j2lbMlPyUuZUBKzxlUzGh5jzTQ",
             authDomain: "habit-tracker-a34d0.firebaseapp.com",
             projectId: "habit-tracker-a34d0",
             storageBucket: "habit-tracker-a34d0.firebasestorage.app",
@@ -307,12 +401,20 @@
         const dropdownEmail = document.getElementById('dropdown-email');
         const logoutBtn = document.getElementById('logout-btn');
 
+        // Flag to track if we've already handled auth
+        let authHandled = false;
+
         // Check auth state
-        onAuthStateChanged(auth, (user) => {
-            authLoading.style.display = 'none';
+        onAuthStateChanged(auth, async (user) => {
+            // Prevent multiple redirects
+            if (authHandled && !user) return;
             
-            if (user && user.emailVerified) {
-                // User is signed in and email is verified
+            console.log("🏠 Auth state changed:", user ? user.email : "no user");
+            
+            if (user) {
+                // User is signed in
+                authHandled = true;
+                authLoading.style.display = 'none';
                 appContainer.style.display = 'block';
                 
                 // Update user info
@@ -321,16 +423,26 @@
                 dropdownName.textContent = displayName;
                 dropdownEmail.textContent = user.email;
                 
+                // Set global user name for header greeting
+                window.currentUserName = displayName;
+                
                 console.log("✅ User logged in:", user.email);
-            } else if (user && !user.emailVerified) {
-                // User exists but email not verified
-                console.log("⚠️ Email not verified, redirecting to login...");
-                signOut(auth);
-                window.location.href = 'login.html';
+                console.log("👤 User ID:", user.uid);
+                
+                // CRITICAL: Load user's data AFTER authentication confirmed
+                // This ensures each user sees only their own data
+                if (window.initHabitData) {
+                    await window.initHabitData();
+                }
             } else {
-                // User is not signed in, redirect to login
-                console.log("❌ User not logged in, redirecting...");
-                window.location.href = 'login.html';
+                // Wait a moment for Firebase to restore session
+                setTimeout(() => {
+                    if (!authHandled && !auth.currentUser) {
+                        console.log("❌ User not logged in, redirecting...");
+                        authLoading.style.display = 'none';
+                        window.location.href = 'login.html';
+                    }
+                }, 1500);
             }
         });
 
@@ -360,6 +472,7 @@
         window.firebaseDb = db;
     </script>
 
+    <script src="firebase-db.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

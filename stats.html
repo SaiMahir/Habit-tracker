@@ -16,42 +16,56 @@
     </div>
 
     <div class="app-container" id="app-container" style="display: none;">
-        <!-- Navigation Bar -->
+        <!-- Navigation Bar - Two Row Layout
+             Row 1 (header-top): Theme toggle + User profile (right-aligned)
+             Row 2 (header-nav): Navigation tabs (horizontally scrollable on mobile)
+        -->
         <nav class="nav-bar">
-            <div class="nav-links">
-                <a href="index.html" class="nav-link">
-                    <span>🏠</span> Home
-                </a>
-                <a href="stats.html" class="nav-link active">
-                    <span>📊</span> Statistics
-                </a>
-            </div>
-            <div class="nav-right">
-                <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
-                    🌙
-                </button>
-                <!-- User Menu -->
-                <div class="user-menu" id="user-menu">
-                    <div class="user-avatar" id="user-avatar" title="Account">
-                        <span id="user-initial">U</span>
-                    </div>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="dropdown-header">
-                            <span class="dropdown-name" id="dropdown-name">User</span>
-                            <span class="dropdown-email" id="dropdown-email">user@email.com</span>
+            <!-- Top Row: Utility Controls -->
+            <div class="header-top">
+                <!-- Left: Greeting & Streak -->
+                <div class="header-top-left">
+                    <span class="header-greeting" id="header-greeting">Good evening</span>
+                    <span class="header-streak" id="header-streak" title="Current streak">
+                        <span class="streak-icon">🔥</span>
+                        <span class="streak-count" id="streak-count">0</span>
+                    </span>
+                </div>
+                <!-- Right: Theme toggle + Profile -->
+                <div class="header-top-right">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                        🌙
+                    </button>
+                    <!-- User Menu -->
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-avatar" id="user-avatar" title="Account">
+                            <span id="user-initial">U</span>
                         </div>
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item" id="profile-btn">
-                            <span>👤</span> Profile
-                        </button>
-                        <button class="dropdown-item" id="settings-btn">
-                            <span>⚙️</span> Settings
-                        </button>
-                        <div class="dropdown-divider"></div>
-                        <button class="dropdown-item logout" id="logout-btn">
-                            <span>🚪</span> Logout
-                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="dropdown-header">
+                                <span class="dropdown-name" id="dropdown-name">User</span>
+                                <span class="dropdown-email" id="dropdown-email">user@email.com</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item logout" id="logout-btn">
+                                <span>🚪</span> Logout
+                            </button>
+                        </div>
                     </div>
+                </div>
+            </div>
+            <!-- Second Row: Navigation Tabs -->
+            <div class="header-nav">
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">
+                        <span>🏠</span> Home
+                    </a>
+                    <a href="weekly.html" class="nav-link">
+                        <span>📅</span> Weekly
+                    </a>
+                    <a href="stats.html" class="nav-link active">
+                        <span>📊</span> Statistics
+                    </a>
                 </div>
             </div>
         </nav>
@@ -294,15 +308,14 @@
         </footer>
     </div>
 
-    <script src="stats.js"></script>
-    
-    <!-- Firebase Auth Check -->
+    <!-- Firebase Auth Check (MUST LOAD BEFORE stats.js) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBskaqU-j2LbMlPyUuZUBKzxlUzGh5jzTQ",
+            apiKey: "AIzaSyBskaqU-j2lbMlPyUuZUBKzxlUzGh5jzTQ",
             authDomain: "habit-tracker-a34d0.firebaseapp.com",
             projectId: "habit-tracker-a34d0",
             storageBucket: "habit-tracker-a34d0.firebasestorage.app",
@@ -313,14 +326,77 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Make available globally for stats.js
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        
+        // Header greeting function
+        function updateHeaderGreeting() {
+            const greetingEl = document.getElementById('header-greeting');
+            if (!greetingEl) return;
+            
+            const hour = new Date().getHours();
+            let greeting;
+            
+            if (hour >= 5 && hour < 12) {
+                greeting = 'Good morning';
+            } else if (hour >= 12 && hour < 17) {
+                greeting = 'Good afternoon';
+            } else if (hour >= 17 && hour < 21) {
+                greeting = 'Good evening';
+            } else {
+                greeting = 'Good night';
+            }
+            
+            // Add user name if available
+            if (window.currentUserName) {
+                greeting += ', ' + window.currentUserName;
+            }
+            
+            greetingEl.textContent = greeting;
+        }
+        
+        // Header streak function
+        function updateHeaderStreak(streak = 0) {
+            const streakEl = document.getElementById('header-streak');
+            const countEl = document.getElementById('streak-count');
+            
+            if (countEl) {
+                countEl.textContent = streak;
+            }
+            
+            if (streakEl) {
+                streakEl.classList.remove('no-streak', 'active-streak');
+                if (streak > 0) {
+                    streakEl.classList.add('active-streak');
+                } else {
+                    streakEl.classList.add('no-streak');
+                }
+            }
+        }
+        
+        console.log("📊 Stats page - checking auth...");
+        
+        // Flag to track if we've already handled auth
+        let authHandled = false;
 
         // Check authentication state
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
+            // Prevent multiple redirects
+            if (authHandled && !user) return;
+            
+            console.log("📊 Auth state changed:", user ? user.email : "no user");
+            
             const loadingScreen = document.getElementById('auth-loading');
             const appContainer = document.getElementById('app-container');
             
-            if (user && user.emailVerified) {
-                // User is signed in and verified
+            if (user) {
+                // User is signed in
+                authHandled = true;
+                console.log("✅ User authenticated on stats page");
+                console.log("👤 User ID:", user.uid);
                 loadingScreen.style.display = 'none';
                 appContainer.style.display = 'block';
                 
@@ -333,13 +409,25 @@
                 userInitial.textContent = displayName.charAt(0).toUpperCase();
                 dropdownName.textContent = displayName;
                 dropdownEmail.textContent = user.email;
-            } else if (user && !user.emailVerified) {
-                // User exists but email not verified
-                signOut(auth);
-                window.location.href = 'login.html';
+                
+                // Set global user name for header greeting
+                window.currentUserName = displayName;
+                
+                // Update header greeting
+                updateHeaderGreeting();
+                
+                // CRITICAL: Load user's data AFTER authentication confirmed
+                if (window.initStatsData) {
+                    await window.initStatsData();
+                }
             } else {
-                // User is not signed in, redirect to login
-                window.location.href = 'login.html';
+                // Wait a moment for Firebase to restore session
+                setTimeout(() => {
+                    if (!authHandled && !auth.currentUser) {
+                        console.log("❌ No user on stats page, redirecting...");
+                        window.location.href = 'login.html';
+                    }
+                }, 1500);
             }
         });
 
@@ -366,5 +454,8 @@
             }
         });
     </script>
+    
+    <script src="firebase-db.js"></script>
+    <script src="stats.js"></script>
 </body>
 </html>

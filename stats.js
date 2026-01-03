@@ -9,6 +9,11 @@
  * - Week vs Previous Week comparison
  * - Individual habit breakdown
  * - Animated number counters
+ * 
+ * DATA ISOLATION:
+ * - Uses Firebase Firestore with user-scoped paths
+ * - Data loaded only after authentication
+ * - Each user sees only their own statistics
  */
 
 // ========================================
@@ -16,12 +21,7 @@
 // ========================================
 
 const STORAGE_KEYS = {
-    HABITS: 'habitTracker_habits',
-    HISTORY: 'habitTracker_history',
-    STREAK: 'habitTracker_streak',
-    LAST_DATE: 'habitTracker_lastDate',
-    BEST_STREAK: 'habitTracker_bestStreak',
-    THEME: 'habitTracker_theme'
+    THEME: 'habitTracker_theme' // Theme stays in localStorage (not sensitive)
 };
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -36,6 +36,7 @@ let history = {};
 let streak = 0;
 let bestStreak = 0;
 let currentPeriod = 'week';
+let isDataLoaded = false;
 
 // ========================================
 // DOM Elements
@@ -191,27 +192,55 @@ function getDateStats(date) {
 }
 
 // ========================================
-// LocalStorage Functions
+// Firestore Data Functions
 // ========================================
 
 /**
- * Load data from localStorage
+ * Load data from Firestore (user-scoped)
+ * CRITICAL: Only called after authentication is confirmed
  */
-function loadFromLocalStorage() {
-    const savedHabits = localStorage.getItem(STORAGE_KEYS.HABITS);
-    const savedHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
-    const savedStreak = localStorage.getItem(STORAGE_KEYS.STREAK);
-    const savedBestStreak = localStorage.getItem(STORAGE_KEYS.BEST_STREAK);
+async function loadFromFirestore() {
+    if (!window.FirebaseDB) {
+        console.error('❌ FirebaseDB not loaded');
+        return;
+    }
     
-    if (savedHabits) habits = JSON.parse(savedHabits);
-    if (savedHistory) history = JSON.parse(savedHistory);
-    if (savedStreak) streak = JSON.parse(savedStreak);
-    if (savedBestStreak) bestStreak = JSON.parse(savedBestStreak);
+    const userId = window.FirebaseDB.getCurrentUserId();
+    if (!userId) {
+        console.warn('⚠️ No authenticated user, cannot load stats');
+        return;
+    }
     
-    // Update best streak if current is higher
-    if (streak > bestStreak) {
-        bestStreak = streak;
-        localStorage.setItem(STORAGE_KEYS.BEST_STREAK, JSON.stringify(bestStreak));
+    console.log(`📊 Loading statistics for user: ${userId}`);
+    
+    try {
+        // Load habits
+        habits = await window.FirebaseDB.loadHabitsFromFirestore();
+        
+        // Load history
+        history = await window.FirebaseDB.loadHistoryFromFirestore();
+        
+        // Load stats
+        const stats = await window.FirebaseDB.loadStatsFromFirestore();
+        streak = stats.streak || 0;
+        bestStreak = stats.bestStreak || 0;
+        
+        // Update best streak if current is higher
+        if (streak > bestStreak) {
+            bestStreak = streak;
+            await window.FirebaseDB.saveStatsToFirestore({
+                ...stats,
+                bestStreak: bestStreak
+            });
+        }
+        
+        isDataLoaded = true;
+        console.log('✅ Statistics data loaded');
+        
+        // Render the UI
+        render();
+    } catch (error) {
+        console.error('❌ Error loading statistics:', error);
     }
 }
 
@@ -350,6 +379,11 @@ function calculateWeekComparison() {
 function renderStreak() {
     animateCounter(elements.currentStreak, streak, 800);
     animateCounter(elements.bestStreak, bestStreak, 800);
+    
+    // Update header streak badge
+    if (typeof updateHeaderStreak === 'function') {
+        updateHeaderStreak(streak);
+    }
 }
 
 /**
@@ -516,6 +550,17 @@ function renderComparison() {
 
 /**
  * Render individual habits breakdown
+ * 
+ * AGGREGATION LOGIC:
+ * - Habits are grouped by groupId (habits that repeat on multiple days)
+ * - Standalone habits (no groupId) are treated individually
+ * - For each group/standalone habit:
+ *   - totalScheduledDays = number of days the habit was scheduled to appear
+ *   - totalCompletedDays = number of days the habit was marked completed
+ *   - completionPercentage = (totalCompletedDays / totalScheduledDays) * 100
+ * 
+ * This ensures each conceptual habit appears ONCE with ONE overall percentage,
+ * not separate entries for each day of the week.
  */
 function renderHabitsBreakdown() {
     if (habits.length === 0) {
@@ -527,61 +572,135 @@ function renderHabitsBreakdown() {
     elements.breakdownEmpty.classList.remove('show');
     
     const dates = currentPeriod === 'week' ? getLastNDays(7) : getCurrentMonthDates();
+    const today = getTodayDate();
     
-    // Calculate completion rate for each habit
-    const habitStats = habits.map(habit => {
-        let completed = 0;
-        let total = 0;
+    // ========================================
+    // Step 1: Group habits by groupId
+    // ========================================
+    // Habits with the same groupId are the same conceptual habit on different days
+    // Habits without groupId are standalone (appear only on one day)
+    
+    const habitGroups = {};
+    
+    habits.forEach(habit => {
+        // Use groupId as key, or habit.id for standalone habits
+        const groupKey = habit.groupId || `standalone_${habit.id}`;
         
+        if (!habitGroups[groupKey]) {
+            habitGroups[groupKey] = {
+                groupId: habit.groupId,
+                name: habit.name, // Use the first habit's name as the group name
+                habits: [],       // All habit instances in this group
+                dayIndices: []    // Which days of week this habit is scheduled
+            };
+        }
+        
+        habitGroups[groupKey].habits.push(habit);
+        habitGroups[groupKey].dayIndices.push(habit.dayOfWeek);
+    });
+    
+    // ========================================
+    // Step 2: Calculate aggregated stats for each group
+    // ========================================
+    
+    const groupStats = Object.values(habitGroups).map(group => {
+        let totalScheduledDays = 0;
+        let totalCompletedDays = 0;
+        
+        // For each date in the selected period
         dates.forEach(date => {
-            const today = getTodayDate();
+            // Get which day of week this date falls on (0=Sun, 6=Sat)
+            const dateObj = new Date(date + 'T00:00:00');
+            const dayOfWeek = dateObj.getDay();
             
+            // Check if this group has a habit scheduled for this day of week
+            const scheduledHabit = group.habits.find(h => h.dayOfWeek === dayOfWeek);
+            
+            if (!scheduledHabit) {
+                // This group doesn't have a habit on this day - skip
+                return;
+            }
+            
+            // This day counts as a scheduled day
+            totalScheduledDays++;
+            
+            // Check if it was completed
             if (date === today) {
-                // Check current habits
-                const currentHabit = habits.find(h => h.id === habit.id);
-                if (currentHabit) {
-                    total++;
-                    if (currentHabit.completed) completed++;
+                // Check current habit state
+                if (scheduledHabit.completed) {
+                    totalCompletedDays++;
                 }
             } else {
-                // Check history
+                // Check history for this date
                 const dayData = history[date];
                 if (dayData) {
-                    const histHabit = dayData.find(h => h.id === habit.id);
-                    if (histHabit) {
-                        total++;
-                        if (histHabit.completed) completed++;
+                    // Look for this habit in history by ID
+                    const histHabit = dayData.find(h => h.id === scheduledHabit.id);
+                    if (histHabit && histHabit.completed) {
+                        totalCompletedDays++;
+                    }
+                    // Also check by groupId in case habit IDs changed
+                    if (!histHabit && group.groupId) {
+                        const histByGroup = dayData.find(h => h.groupId === group.groupId);
+                        if (histByGroup && histByGroup.completed) {
+                            totalCompletedDays++;
+                        }
                     }
                 }
             }
         });
         
+        // Calculate completion percentage
+        const rate = totalScheduledDays === 0 ? 0 : Math.round((totalCompletedDays / totalScheduledDays) * 100);
+        
+        // Get readable list of days this habit is scheduled
+        const dayNames = [...new Set(group.dayIndices)]
+            .sort((a, b) => a - b)
+            .map(d => DAYS_OF_WEEK[d])
+            .join(', ');
+        
         return {
-            ...habit,
-            completedCount: completed,
-            totalCount: total,
-            rate: total === 0 ? 0 : Math.round((completed / total) * 100)
+            name: group.name,
+            groupId: group.groupId,
+            completedCount: totalCompletedDays,
+            totalCount: totalScheduledDays,
+            rate: rate,
+            scheduledDays: dayNames,
+            isGrouped: group.habits.length > 1
         };
     });
     
-    // Sort by completion rate
-    habitStats.sort((a, b) => b.rate - a.rate);
+    // ========================================
+    // Step 3: Sort by completion rate and render
+    // ========================================
     
-    elements.habitsBreakdown.innerHTML = habitStats.map(habit => `
-        <div class="breakdown-item">
-            <div class="breakdown-icon">📌</div>
-            <div class="breakdown-info">
-                <div class="breakdown-name">${escapeHtml(habit.name)}</div>
-                <div class="breakdown-meta">${habit.completedCount}/${habit.totalCount} completed</div>
-            </div>
-            <div class="breakdown-progress">
-                <div class="breakdown-bar">
-                    <div class="breakdown-fill" style="width: ${habit.rate}%"></div>
+    groupStats.sort((a, b) => b.rate - a.rate);
+    
+    elements.habitsBreakdown.innerHTML = groupStats.map(stat => {
+        // Show day indicator for grouped habits
+        const daysBadge = stat.isGrouped 
+            ? `<span class="breakdown-days-badge" title="Scheduled on: ${stat.scheduledDays}">📅 ${stat.scheduledDays}</span>`
+            : '';
+        
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-icon">📌</div>
+                <div class="breakdown-info">
+                    <div class="breakdown-name">${escapeHtml(stat.name)}</div>
+                    <div class="breakdown-meta">
+                        ${stat.completedCount}/${stat.totalCount} days completed
+                        ${daysBadge}
+                    </div>
                 </div>
-                <div class="breakdown-rate">${habit.rate}%</div>
+                <div class="breakdown-progress">
+                    <div class="breakdown-bar">
+                        <div class="breakdown-fill" style="width: ${stat.rate}%"></div>
+                    </div>
+                    <div class="breakdown-rate">${stat.rate}%</div>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 /**
@@ -641,16 +760,23 @@ function initEventListeners() {
 // ========================================
 
 /**
- * Initialize the statistics page
+ * Initialize UI (called on DOMContentLoaded)
  */
 function init() {
-    loadFromLocalStorage();
     loadTheme();
     initEventListeners();
-    render();
-    
-    console.log('Statistics page initialized! 📊');
+    // Data loading happens via initStatsData() after auth
+    console.log('📊 Statistics page UI initialized, waiting for auth...');
 }
+
+/**
+ * Initialize stats data (called from stats.html after auth confirmed)
+ * This ensures data is loaded ONLY for authenticated users
+ */
+window.initStatsData = async function() {
+    console.log('🔐 User authenticated, loading stats data...');
+    await loadFromFirestore();
+};
 
 // Start when DOM is ready
 document.addEventListener('DOMContentLoaded', init);

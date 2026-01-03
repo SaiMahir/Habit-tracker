@@ -2,10 +2,10 @@
    CSS Variables - Dark Theme Color Palette
    ======================================== */
 :root {
-    /* Primary Colors - Neon Accent Theme */
-    --primary-color: #8b5cf6;
-    --primary-light: #a78bfa;
-    --primary-dark: #7c3aed;
+    /* Primary Colors - Neon Green Theme */
+    --primary-color: #22c55e;
+    --primary-light: #4ade80;
+    --primary-dark: #16a34a;
     
     /* Background Colors - Dark Theme */
     --bg-primary: #0f0f1a;
@@ -17,10 +17,11 @@
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+    --text-neon: #4ade80;
     
     /* Status Colors */
-    --success-color: #10b981;
-    --success-light: rgba(16, 185, 129, 0.15);
+    --success-color: #22c55e;
+    --success-light: rgba(34, 197, 94, 0.15);
     --warning-color: #f59e0b;
     --warning-light: rgba(245, 158, 11, 0.15);
     --danger-color: #ef4444;
@@ -33,12 +34,15 @@
     --accent-teal: #14b8a6;
     --accent-cyan: #06b6d4;
     --accent-green: #22c55e;
+    --accent-neon: #39ff14;
     
     /* Glow Effects */
+    --glow-primary: 0 0 20px rgba(34, 197, 94, 0.5);
     --glow-purple: 0 0 20px rgba(139, 92, 246, 0.5);
     --glow-blue: 0 0 20px rgba(59, 130, 246, 0.5);
-    --glow-green: 0 0 20px rgba(16, 185, 129, 0.5);
+    --glow-green: 0 0 20px rgba(34, 197, 94, 0.5);
     --glow-pink: 0 0 20px rgba(236, 72, 153, 0.5);
+    --glow-neon: 0 0 20px rgba(57, 255, 20, 0.6);
     
     /* Border & Shadow */
     --border-color: rgba(255, 255, 255, 0.1);
@@ -60,26 +64,303 @@
     --transition-slow: 350ms ease;
 }
 
-/* Light Theme (for toggle) */
+/* ========================================
+   Light Theme - Clean, High-Contrast Design
+   ======================================== 
+   
+   DESIGN PHILOSOPHY:
+   - Soft off-white backgrounds (not pure white) reduce eye strain
+   - Cards use pure white with subtle shadows for clear hierarchy
+   - Neon green used sparingly for accents, not for text
+   - Higher contrast text colors for better readability
+   - No gradients - cleaner, more modern aesthetic
+   - Muted indigo as secondary accent for variety
+   
+   WHY LIGHT MODE DIFFERS:
+   - Dark mode uses gradients/glows for visual interest on dark backgrounds
+   - Light mode achieves visual interest through shadows and contrast
+   - Bright neon colors are toned down to prevent eye strain
+   ======================================== */
 [data-theme="light"] {
-    --primary-color: #6366f1;
-    --primary-light: #818cf8;
-    --primary-dark: #4f46e5;
-    --bg-primary: #f8fafc;
-    --bg-secondary: #ffffff;
-    --bg-card: #ffffff;
-    --bg-elevated: #f1f5f9;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --success-light: #d1fae5;
-    --warning-light: #fef3c7;
-    --danger-light: #fee2e2;
+    /* Primary Colors - Slightly muted green for light mode */
+    --primary-color: #16a34a;
+    --primary-light: #22c55e;
+    --primary-dark: #15803d;
+    
+    /* Background Colors - Off-white base, white cards */
+    --bg-primary: #f1f5f9;       /* Soft off-white page background */
+    --bg-secondary: #e2e8f0;     /* Slightly darker for sections */
+    --bg-card: #ffffff;          /* Pure white cards for contrast */
+    --bg-elevated: #f8fafc;      /* Very light for elevated elements */
+    
+    /* Text Colors - High contrast for readability */
+    --text-primary: #0f172a;     /* Near-black for headings */
+    --text-secondary: #475569;   /* Slate gray for secondary text */
+    --text-muted: #64748b;       /* Lighter slate for muted text */
+    --text-neon: #15803d;        /* Darker green for light mode - more readable */
+    
+    /* Status Colors - Softer backgrounds for light mode */
+    --success-light: rgba(34, 197, 94, 0.12);
+    --warning-light: rgba(245, 158, 11, 0.12);
+    --danger-light: rgba(239, 68, 68, 0.12);
+    
+    /* Border & Shadow - Visible but subtle */
     --border-color: #e2e8f0;
-    --glow-purple: 0 4px 14px rgba(99, 102, 241, 0.25);
-    --glow-blue: 0 4px 14px rgba(59, 130, 246, 0.25);
-    --glow-green: 0 4px 14px rgba(16, 185, 129, 0.25);
-    --glow-pink: 0 4px 14px rgba(236, 72, 153, 0.25);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Glow Effects - Softer for light mode */
+    --glow-primary: 0 4px 14px rgba(34, 197, 94, 0.2);
+    --glow-purple: 0 4px 14px rgba(99, 102, 241, 0.2);
+    --glow-blue: 0 4px 14px rgba(59, 130, 246, 0.2);
+    --glow-green: 0 4px 14px rgba(34, 197, 94, 0.2);
+    --glow-pink: 0 4px 14px rgba(236, 72, 153, 0.2);
+    --glow-neon: 0 4px 14px rgba(34, 197, 94, 0.2);
+    
+    /* Light mode specific - Secondary accent */
+    --accent-secondary: #6366f1; /* Muted indigo for variety */
+}
+
+/* ========================================
+   Light Mode Component Overrides
+   ======================================== 
+   
+   These styles apply ONLY in light mode and override
+   the default dark mode component styles.
+   
+   WHY SEPARATE OVERRIDES:
+   - Keeps dark mode styles intact as the default
+   - Light mode needs different visual treatments
+   - Easier to maintain and debug
+   ======================================== */
+
+/* ----------------------------------------
+   Header Card - Light Mode
+   Clean white background, no gradient
+   ---------------------------------------- */
+[data-theme="light"] .header {
+    /* Remove gradient - use clean white with subtle shadow */
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+}
+
+/* Remove decorative gradient overlay in light mode */
+[data-theme="light"] .header::before {
+    display: none;
+}
+
+/* Logo styling for light mode */
+[data-theme="light"] .logo-icon {
+    background: rgba(22, 163, 74, 0.1);
+    color: var(--primary-color);
+}
+
+[data-theme="light"] .logo h1 {
+    color: var(--text-primary);
+}
+
+/* Date display - subtle background in light mode */
+[data-theme="light"] .date-display {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* ----------------------------------------
+   Progress Section - Light Mode
+   Higher contrast between card and page
+   ---------------------------------------- */
+[data-theme="light"] .progress-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Progress bar track - light gray for contrast */
+[data-theme="light"] .progress-bar {
+    background: #e2e8f0;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Progress bar fill - solid green, no gradient */
+[data-theme="light"] .progress-fill {
+    background: var(--primary-color);
+}
+
+/* Disable shine animation in light mode for cleaner look */
+[data-theme="light"] .progress-fill::after {
+    display: none;
+}
+
+/* Progress percentage - readable dark text, not neon */
+[data-theme="light"] #progress-percentage {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+/* ----------------------------------------
+   Navigation Tabs - Light Mode
+   White inactive, solid green active
+   ---------------------------------------- */
+[data-theme="light"] .nav-link {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .nav-link:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-md);
+    /* No glow in light mode - use shadow instead */
+}
+
+[data-theme="light"] .nav-link.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* ----------------------------------------
+   Header Greeting & Streak - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] .header-greeting {
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .header-streak {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .header-streak:hover {
+    border-color: var(--warning-color);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+/* ----------------------------------------
+   Theme Toggle & User Menu - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] .theme-toggle {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .theme-toggle:hover {
+    background: var(--bg-elevated);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+[data-theme="light"] .user-avatar {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* ----------------------------------------
+   Cards & Sections - Light Mode
+   Clear separation with shadows
+   ---------------------------------------- */
+[data-theme="light"] .habits-section,
+[data-theme="light"] .stats-section,
+[data-theme="light"] .quick-stats,
+[data-theme="light"] .today-config-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Habit items - subtle elevation */
+[data-theme="light"] .habit-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .habit-item:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+[data-theme="light"] .habit-item.completed {
+    background: rgba(22, 163, 74, 0.05);
+    border-color: var(--primary-color);
+}
+
+/* ----------------------------------------
+   Stat Cards - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+/* Stat values - dark text for readability */
+[data-theme="light"] .stat-value {
+    color: var(--text-primary);
+}
+
+/* ----------------------------------------
+   Buttons - Light Mode
+   Solid colors, no gradients
+   ---------------------------------------- */
+[data-theme="light"] .add-habit-btn,
+[data-theme="light"] .btn-primary {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .add-habit-btn:hover,
+[data-theme="light"] .btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: var(--shadow-md);
+}
+
+/* ----------------------------------------
+   Form Inputs - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+/* ----------------------------------------
+   Dropdown Menus - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] .user-dropdown {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xl);
+}
+
+[data-theme="light"] .dropdown-item:hover {
+    background: var(--bg-elevated);
+}
+
+/* ----------------------------------------
+   Section Headers - Light Mode
+   ---------------------------------------- */
+[data-theme="light"] .section-header h2,
+[data-theme="light"] .section-title {
+    color: var(--text-primary);
 }
 
 /* ========================================
@@ -93,6 +374,7 @@
 
 html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 body {
@@ -101,6 +383,9 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
 }
 
 /* ========================================
@@ -108,11 +393,14 @@ body {
    ======================================== */
 .app-container {
     max-width: 900px;
+    width: 100%;
     margin: 0 auto;
     padding: 20px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 /* ========================================
@@ -275,21 +563,117 @@ body {
 }
 
 /* ========================================
-   Add Habit Section (appears below habits list)
+   Add Habit Section (Collapsible Accordion)
    ======================================== */
 .add-habit-section {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    padding: 25px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
-    transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+    transition: all var(--transition-normal);
+    overflow: hidden;
 }
 
 .add-habit-section:hover {
     box-shadow: var(--shadow-lg);
 }
 
+/* Collapsible Header */
+.add-habit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 25px;
+    cursor: pointer;
+    user-select: none;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    transition: all var(--transition-normal);
+}
+
+.add-habit-header:hover {
+    filter: brightness(1.1);
+}
+
+.add-habit-header:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.add-habit-header .section-title {
+    margin: 0;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.add-habit-header .title-icon {
+    font-size: 1.2rem;
+}
+
+/* Expand/Collapse Icon */
+.expand-icon {
+    font-size: 0.9rem;
+    color: white;
+    transition: transform var(--transition-normal);
+    opacity: 0.8;
+}
+
+/* Collapsible Content */
+.add-habit-content {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding: 0 25px;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+}
+
+/* ========================================
+   Expanded State - Neon Green Theme
+   ======================================== */
+.add-habit-section.expanded {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+.add-habit-section.expanded .add-habit-header {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.add-habit-section.expanded .expand-icon {
+    transform: rotate(180deg);
+}
+
+.add-habit-section.expanded .add-habit-content {
+    max-height: 1000px;
+    opacity: 1;
+    padding: 25px;
+    padding-top: 20px;
+}
+
+/* Green accent for expanded form elements */
+.add-habit-section.expanded .form-group input:focus,
+.add-habit-section.expanded .form-group textarea:focus {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.add-habit-section.expanded .day-btn.selected {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+}
+
+.add-habit-section.expanded .btn-primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.35);
+}
+
+.add-habit-section.expanded .btn-primary:hover {
+    box-shadow: 0 6px 20px 0 rgba(34, 197, 94, 0.45);
+}
+
+/* ========================================
+   Habit Form Styles
+   ======================================== */
 .habit-form {
     display: flex;
     flex-direction: column;
@@ -330,14 +714,16 @@ body {
     font-family: inherit;
     transition: all var(--transition-fast);
     background: var(--bg-primary);
+    color: var(--text-neon);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), var(--glow-green);
     background: var(--bg-secondary);
+    color: var(--text-neon);
 }
 
 .form-group input::placeholder,
@@ -373,12 +759,12 @@ body {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
-    box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.35);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.45);
+    box-shadow: 0 6px 20px 0 rgba(34, 197, 94, 0.45);
 }
 
 .btn-primary:active {
@@ -393,6 +779,248 @@ body {
 
 .btn-secondary:hover {
     background: var(--border-color);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* ========================================
+   Day Overrides Section
+   ======================================== */
+.day-overrides-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    margin-top: 10px;
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 4px 0 12px 0;
+}
+
+.char-limit {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+.day-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.day-btn {
+    width: 48px;
+    height: 40px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.day-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.day-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.day-btn.has-override {
+    border-color: var(--accent-cyan);
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--accent-cyan);
+}
+
+.day-btn.has-override.disabled-day {
+    border-color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+    text-decoration: line-through;
+}
+
+.day-override-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 15px;
+    margin-bottom: 15px;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.override-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.override-day-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.override-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.override-close:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+.override-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.override-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.override-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.override-label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.override-time-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 0;
+}
+
+.override-time-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    width: auto;
+    max-width: 150px;
+}
+
+.override-time-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.override-time-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Active Overrides Display */
+.active-overrides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.override-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.override-badge.disabled {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.override-badge.time-change {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.override-badge-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1rem;
+    opacity: 0.7;
+    transition: opacity var(--transition-fast);
+}
+
+.override-badge-remove:hover {
+    opacity: 1;
+}
+
+/* Habit item override indicators */
+.habit-override-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--accent-cyan);
+    margin-left: 8px;
+}
+
+.habit-override-indicator.different-time {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--primary-color);
 }
 
 /* ========================================
@@ -845,7 +1473,132 @@ body {
 }
 
 /* ========================================
-   Modal
+   Modal (Standalone - used in weekly.html)
+   ======================================== */
+#habit-actions-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-normal);
+    backdrop-filter: blur(4px);
+}
+
+#habit-actions-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+#habit-actions-modal .modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    width: 90%;
+    max-width: 340px;
+    box-shadow: var(--shadow-xl);
+    transform: scale(0.9);
+    transition: transform var(--transition-normal);
+    border: 1px solid var(--border-color);
+}
+
+#habit-actions-modal.show .modal-content {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    font-size: 1.3rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: var(--danger-light);
+    color: var(--danger-color);
+}
+
+.modal-body {
+    padding: 8px 0;
+}
+
+.modal-hint {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.modal-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.modal-action-btn:hover {
+    background: var(--bg-elevated);
+    border-color: var(--primary-color);
+}
+
+.modal-action-btn span {
+    font-size: 1.1rem;
+}
+
+.modal-action-btn.delete-btn:hover,
+.modal-action-btn.delete-all-btn:hover {
+    background: var(--danger-light);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+/* ========================================
+   Modal Overlay (Legacy - used in index.html)
    ======================================== */
 .modal-overlay {
     position: fixed;
@@ -969,6 +1722,7 @@ body {
 
     .habit-item {
         flex-wrap: wrap;
+        padding: 15px;
     }
 
     .habit-content {
@@ -980,9 +1734,42 @@ body {
     .habit-actions {
         order: 1;
     }
+    
+    /* Fix mobile time badge alignment */
+    .habit-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .habit-name {
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+    }
+    
+    .habit-time {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        white-space: nowrap;
+    }
 
     .chart-bar-container {
         min-width: 30px;
+    }
+    
+    /* Add Habit Accordion Mobile Styles */
+    .add-habit-header {
+        padding: 16px 20px;
+    }
+    
+    .add-habit-header .section-title {
+        font-size: 1rem;
+    }
+    
+    .add-habit-section.expanded .add-habit-content {
+        padding: 20px;
+        padding-top: 16px;
     }
 }
 
@@ -1013,6 +1800,47 @@ body {
     .chart {
         height: 120px;
     }
+    
+    /* Extra small screen habit card fixes */
+    .habit-item {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .habit-content {
+        margin-left: 38px;
+    }
+    
+    .habit-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .habit-time {
+        align-self: flex-start;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+    
+    .habit-checkbox {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .habit-name {
+        font-size: 0.95rem;
+    }
+    
+    .habit-description {
+        font-size: 0.8rem;
+    }
+    
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
 }
 
 /* ========================================
@@ -1034,14 +1862,130 @@ body {
 }
 
 /* ========================================
-   Navigation Bar
+   Navigation Bar - Two Row Layout
+   ======================================== 
+   
+   STRUCTURE:
+   .nav-bar
+   ├── .header-top (Row 1: Theme toggle + User profile)
+   │   └── .header-top-right (right-aligned controls)
+   └── .header-nav (Row 2: Navigation tabs)
+       └── .nav-links (tab container)
+   
+   WHY TWO ROWS:
+   - Separates utility controls from navigation for cleaner hierarchy
+   - Theme toggle and profile are always accessible at top
+   - Navigation tabs can scroll independently on mobile
+   - Better visual organization and touch targets
    ======================================== */
+
 .nav-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px 0;
+    margin-bottom: 20px;
+}
+
+/* ----------------------------------------
+   Header Top Row - Utility Controls
+   Left: Greeting + streak | Right: theme toggle + user avatar
+   ---------------------------------------- */
+.header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 0;
-    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* ----------------------------------------
+   Header Top Left - Greeting & Streak
+   Subtle, non-distracting content to balance the header
+   ---------------------------------------- */
+.header-top-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-greeting {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    opacity: 0.95;
+}
+
+.header-streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.header-streak:hover {
+    border-color: var(--warning-color);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.streak-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.streak-count {
+    font-weight: 600;
+    color: var(--warning-color);
+}
+
+/* When streak is 0, dim the fire icon */
+.header-streak.no-streak .streak-icon {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
+.header-streak.no-streak .streak-count {
+    color: var(--text-muted);
+}
+
+/* Active streak animation */
+.header-streak.active-streak .streak-icon {
+    animation: fireGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes fireGlow {
+    0%, 100% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.3));
+    }
+    50% { 
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+    }
+}
+
+.header-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ----------------------------------------
+   Header Nav Row - Navigation Tabs
+   Contains the scrollable tab container
+   ---------------------------------------- */
+.header-nav {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    /* Subtle top border as separator between rows */
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
 }
 
 .nav-links {
@@ -1049,6 +1993,7 @@ body {
     gap: 10px;
 }
 
+/* Legacy .nav-right - kept for backwards compatibility if needed */
 .nav-right {
     display: flex;
     align-items: center;
@@ -1121,6 +2066,12 @@ body {
     justify-content: center;
     gap: 20px;
     z-index: 9999;
+    transition: opacity 0.3s ease;
+}
+
+/* When hidden, ensure no click blocking */
+.auth-loading[style*="display: none"] {
+    pointer-events: none;
 }
 
 .loading-spinner {
@@ -1271,4 +2222,537 @@ body {
 
 .glow-card:hover::before {
     opacity: 1;
+}
+
+/* ========================================
+   Per-Day Habit Selection Styles
+   ======================================== */
+
+/* Day Selection Section */
+.day-selection-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Day Selector - Button Row */
+.day-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+.day-btn {
+    min-width: 48px;
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.day-btn:hover {
+    border-color: var(--primary-light);
+    color: var(--primary-light);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.day-btn.selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--glow-green);
+}
+
+.day-btn.selected:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.day-btn.has-config {
+    position: relative;
+}
+
+.day-btn.has-config::after {
+    content: '✓';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: var(--success-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Selected Days Summary */
+.selected-days-summary {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 8px 0;
+    font-style: italic;
+}
+
+/* Day Configuration Panel */
+.day-config-panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.day-config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.day-config-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-light);
+}
+
+.day-config-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color var(--transition-fast);
+}
+
+.day-config-close:hover {
+    color: var(--danger-color);
+}
+
+.day-config-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.day-config-panel .form-group {
+    margin-bottom: 12px;
+}
+
+.day-config-panel .form-group:last-of-type {
+    margin-bottom: 16px;
+}
+
+.day-config-panel input,
+.day-config-panel textarea {
+    background: var(--bg-card);
+}
+
+/* ========================================
+   Habit Group Indicator Styles
+   ======================================== */
+
+.habit-group-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--primary-light);
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+/* Edit Modal Group Info */
+.edit-group-info {
+    margin-bottom: 16px;
+}
+
+.group-info-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--primary-light);
+    font-size: 0.9rem;
+}
+
+.group-info-icon {
+    font-size: 1.2rem;
+}
+
+.group-info-text strong {
+    color: var(--text-primary);
+}
+
+.group-info-note {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--primary-light);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: inherit;
+    padding: 0;
+    font-family: inherit;
+}
+
+.link-btn:hover {
+    color: var(--primary-color);
+}
+
+/* Small Button Variant */
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* Form Hint Text */
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 480px) {
+    .day-selector {
+        justify-content: center;
+    }
+    
+    .day-btn {
+        min-width: 42px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .habit-group-indicator {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+    
+    .day-config-panel {
+        padding: 12px;
+    }
+}
+
+/* ========================================
+   Global Overflow Prevention
+   Prevents horizontal scrolling on all devices
+   ======================================== */
+
+/* Ensure all main sections stay within viewport */
+.main-content,
+.header,
+.footer,
+.nav-bar,
+section {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Prevent any element from causing horizontal overflow */
+img, video, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Ensure flex containers don't overflow */
+.flex-container,
+[class*="grid"],
+[class*="flex"] {
+    max-width: 100%;
+}
+
+/* Mobile-specific overflow fixes */
+@media (max-width: 768px) {
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+    }
+    
+    .app-container {
+        padding: 12px;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Ensure header doesn't overflow */
+    .header {
+        padding: 20px 15px;
+    }
+    
+    .header-content {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+
+/* ========================================
+   Mobile Navigation - Horizontal Scroll
+   ======================================== 
+   
+   WHY: On mobile screens (≤768px), navigation tabs may not fit
+   in one row. Instead of wrapping to multiple lines (which looks
+   cluttered), we enable horizontal scrolling for a cleaner UX.
+   
+   Desktop keeps the standard fixed layout since there's enough
+   space for all tabs to display without scrolling.
+   
+   MOBILE LAYOUT:
+   - Top row (header-top): Theme + Profile aligned right
+   - Second row (header-nav): Tabs in scrollable container
+   - Proper spacing and touch targets maintained
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Navigation bar - column layout on mobile */
+    .nav-bar {
+        gap: 10px;
+        padding: 10px 0;
+    }
+    
+    /* Top row adjustments for mobile */
+    .header-top {
+        padding-bottom: 8px;
+    }
+    
+    /* Header top left - simplified on mobile */
+    .header-top-left {
+        gap: 10px;
+    }
+    
+    /* Hide greeting text on small screens, keep streak */
+    .header-greeting {
+        display: none;
+    }
+    
+    /* Smaller streak badge on mobile */
+    .header-streak {
+        font-size: 0.8rem;
+        padding: 3px 8px;
+    }
+    
+    .header-top-right {
+        gap: 10px;
+    }
+    
+    /* Nav row - full width for scrolling */
+    .header-nav {
+        padding-top: 10px;
+    }
+    
+    /* Container for nav links - enables horizontal scroll */
+    .nav-links {
+        /* Enable horizontal scrolling only on mobile */
+        overflow-x: auto;
+        overflow-y: hidden; /* Prevent vertical scroll interference */
+        
+        /* Flex layout - no wrapping, items stay in one row */
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        
+        /* Smooth touch scrolling for iOS/mobile */
+        -webkit-overflow-scrolling: touch;
+        
+        /* Scroll snap for cleaner tab-by-tab scrolling */
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        
+        /* Padding to ensure first/last items aren't cut off */
+        padding: 4px 2px;
+        margin: 0 -2px; /* Compensate for padding */
+        
+        /* Full width on mobile */
+        width: 100%;
+        
+        /* Hide scrollbar visually while keeping functionality */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    
+    /* Hide scrollbar - WebKit browsers (Chrome, Safari) */
+    .nav-links::-webkit-scrollbar {
+        display: none;
+        height: 0;
+        width: 0;
+    }
+    
+    /* Individual nav link styling for mobile scroll */
+    .nav-links .nav-link {
+        /* Each tab snaps into view when scrolling */
+        scroll-snap-align: start;
+        
+        /* Prevent tabs from shrinking */
+        flex-shrink: 0;
+        
+        /* Slightly smaller padding on mobile */
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        
+        /* Ensure minimum touch target size */
+        min-height: 40px;
+    }
+    
+    /* Theme toggle slightly smaller on mobile */
+    .theme-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+    
+    /* User avatar slightly smaller on mobile */
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+}
+
+/* ========================================
+   Mobile Nav Scroll Fade Indicators (Optional Enhancement)
+   ======================================== 
+   
+   Subtle gradient masks on left/right edges to visually
+   indicate that more content is available by scrolling.
+   Only visible on mobile when nav-links is scrollable.
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Wrapper for scroll fade effect */
+    .header-nav {
+        position: relative;
+    }
+    
+    /* Right fade indicator - shows more content available */
+    .header-nav::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 12px;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to right, transparent, var(--bg-primary));
+        pointer-events: none;
+        opacity: 0.8;
+    }
+}
+
+/* ========================================
+   Desktop Layout Improvements
+   ======================================== 
+   
+   DESIGN PHILOSOPHY:
+   - Modern productivity apps (Notion, Linear, GitHub) use 
+     wider content areas on desktop for better readability
+   - Reduce excessive whitespace on sides
+   - Maintain centered, balanced layout
+   - Keep mobile/tablet unchanged
+   
+   BREAKPOINTS:
+   - ≥1024px: Standard desktop (1200px max-width)
+   - ≥1400px: Large desktop (1400px max-width)
+   ======================================== */
+
+@media (min-width: 1024px) {
+    /* Wider container for desktop */
+    .app-container {
+        max-width: 1100px;
+        padding: 24px 40px;
+    }
+    
+    /* Header - wider with better padding */
+    .header {
+        padding: 36px 40px;
+    }
+    
+    .logo h1 {
+        font-size: 2rem;
+    }
+    
+    /* Progress section - more spacious */
+    .progress-section {
+        padding: 28px 32px;
+    }
+    
+    .progress-bar {
+        height: 18px;
+    }
+    
+    #progress-percentage {
+        font-size: 1.75rem;
+    }
+    
+    /* Habits section - better card styling */
+    .habits-section {
+        padding: 28px 32px;
+    }
+    
+    .habit-item {
+        padding: 18px 24px;
+    }
+    
+    /* Section titles - larger */
+    .section-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    /* Stats cards - more padding */
+    .stat-card {
+        padding: 20px 24px;
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+    }
+    
+    /* Add habit form - wider layout */
+    .add-habit-form {
+        padding: 24px 28px;
+    }
+}
+
+/* Large Desktop - Even wider */
+@media (min-width: 1400px) {
+    .app-container {
+        max-width: 1300px;
+        padding: 24px 60px;
+    }
+    
+    /* Two-column layout for habits could be added here if desired */
 }

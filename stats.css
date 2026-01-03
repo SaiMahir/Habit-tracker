@@ -25,7 +25,7 @@
     right: 0;
     bottom: 0;
     background: linear-gradient(135deg, 
-        rgba(139, 92, 246, 0.1) 0%, 
+        rgba(34, 197, 94, 0.1) 0%, 
         rgba(59, 130, 246, 0.1) 50%,
         rgba(20, 184, 166, 0.1) 100%);
     pointer-events: none;
@@ -245,11 +245,11 @@
 }
 
 .card-icon.green {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(34, 197, 94, 0.15);
 }
 
 .card-icon.purple {
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(34, 197, 94, 0.15);
 }
 
 .card-icon.orange {
@@ -672,8 +672,8 @@
 }
 
 .comparison-fill.this-week {
-    background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-cyan));
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
 }
 
 .comparison-fill.last-week {
@@ -754,7 +754,7 @@
 .breakdown-icon {
     width: 40px;
     height: 40px;
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(34, 197, 94, 0.15);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -775,6 +775,24 @@
 .breakdown-meta {
     font-size: 0.8rem;
     color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Days badge for grouped habits in breakdown */
+.breakdown-days-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--primary-light);
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .breakdown-progress {
@@ -916,5 +934,205 @@
     
     .calendar-day {
         font-size: 0.6rem;
+    }
+}
+
+/* ========================================
+   Overflow Prevention for Stats Page
+   ======================================== */
+.stats-header,
+.chart-section,
+.highlights-section,
+.streak-section,
+.comparison-section,
+.breakdown-section {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* ========================================
+   Light Mode Overrides - Stats Page
+   ======================================== 
+   
+   Clean, high-contrast design for light mode.
+   Removes gradients and glows, uses shadows instead.
+   ======================================== */
+
+/* Stats Header - Clean white, no gradient */
+[data-theme="light"] .stats-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Remove decorative overlays in light mode */
+[data-theme="light"] .stats-header::before,
+[data-theme="light"] .stats-header::after {
+    display: none;
+}
+
+/* Stats title - solid color, no gradient text */
+[data-theme="light"] .stats-title h1 {
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: var(--text-primary);
+    background-clip: unset;
+    color: var(--text-primary);
+}
+
+/* Overview Cards - White with subtle shadow */
+[data-theme="light"] .overview-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .overview-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+/* Card values - dark text for readability */
+[data-theme="light"] .card-value {
+    color: var(--text-primary);
+}
+
+/* Chart Section - Clean white background */
+[data-theme="light"] .chart-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Highlights Section */
+[data-theme="light"] .highlights-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .highlight-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+/* Streak Section */
+[data-theme="light"] .streak-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Calendar day cells */
+[data-theme="light"] .calendar-day {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .calendar-day.completed {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Comparison Section */
+[data-theme="light"] .comparison-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Breakdown Section */
+[data-theme="light"] .breakdown-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .breakdown-item {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+/* Streak highlight */
+[data-theme="light"] .streak-highlight {
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+[data-theme="light"] .streak-number {
+    color: var(--primary-color);
+}
+
+/* ========================================
+   Desktop Layout Improvements - Stats Page
+   ======================================== 
+   
+   GOALS:
+   - Better use of horizontal space on wide screens
+   - More balanced, app-like layout
+   - Keep mobile layout unchanged
+   ======================================== */
+
+@media (min-width: 1024px) {
+    /* Wider container for stats page */
+    body:has(.stats-header) .app-container {
+        max-width: 1200px;
+        padding: 24px 40px;
+    }
+    
+    /* Stats header - wider padding */
+    .stats-header {
+        padding: 36px 40px;
+    }
+    
+    .stats-title h1 {
+        font-size: 2.25rem;
+    }
+    
+    /* Overview grid - better spacing */
+    .overview-grid {
+        gap: 20px;
+    }
+    
+    .overview-card {
+        padding: 24px;
+    }
+    
+    .card-value {
+        font-size: 2.5rem;
+    }
+    
+    /* Chart section - more padding */
+    .chart-section {
+        padding: 28px;
+    }
+    
+    /* Section titles - larger on desktop */
+    .section-title {
+        font-size: 1.15rem;
+    }
+    
+    /* Highlights grid - ensure 3 columns */
+    .highlights-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    
+    .highlight-card {
+        padding: 24px;
+    }
+}
+
+/* Large Desktop - Stats Page */
+@media (min-width: 1400px) {
+    body:has(.stats-header) .app-container {
+        max-width: 1400px;
+        padding: 24px 60px;
+    }
+    
+    .overview-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }
