@@ -23,6 +23,19 @@
  * - users/{uid}/stats/current       - Streak and statistics
  */
 
+// Get Logger instance (must be available globally from logger.js)
+function getLogger() {
+    return window.Logger || {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: (msg, err) => console.error(msg, err),
+        authSuccess: () => {},
+        authFailure: () => {},
+        dbOperation: () => {}
+    };
+}
+
 // ========================================
 // Constants & Configuration
 // ========================================
@@ -89,9 +102,7 @@ function initElements() {
         cancelEdit: document.getElementById('cancel-edit'),
         themeToggle: document.getElementById('theme-toggle')
     };
-    console.log('✅ DOM elements initialized');
-    console.log('   habitForm:', elements.habitForm ? 'FOUND' : 'NOT FOUND');
-    console.log('   habitName:', elements.habitName ? 'FOUND' : 'NOT FOUND');
+    getLogger().debug('DOM elements initialized');
 }
 
 // ========================================
@@ -174,18 +185,19 @@ function getGroupDays(groupId) {
  * CRITICAL: Only called after authentication is confirmed
  */
 async function loadFromFirestore() {
+    const log = getLogger();
     if (!window.FirebaseDB) {
-        console.error('❌ FirebaseDB not loaded');
+        log.error('FirebaseDB not loaded');
         return;
     }
     
     currentUserId = window.FirebaseDB.getCurrentUserId();
     if (!currentUserId) {
-        console.log('⚠️ No authenticated user, cannot load data');
+        log.warn('No authenticated user, cannot load data');
         return;
     }
     
-    console.log(`📂 Loading data for user: ${currentUserId}`);
+    log.debug('Loading user data...');
     
     try {
         // First, check if we need to migrate localStorage data
@@ -207,12 +219,12 @@ async function loadFromFirestore() {
         await checkDailyReset();
         
         isDataLoaded = true;
-        console.log('✅ User data loaded successfully');
+        log.info('User data loaded successfully');
         
         // Render the UI
         render();
     } catch (error) {
-        console.error('❌ Error loading data:', error);
+        log.error('Error loading data', error);
     }
 }
 
@@ -220,8 +232,9 @@ async function loadFromFirestore() {
  * Save all data to Firestore
  */
 async function saveToFirestore() {
+    const log = getLogger();
     if (!window.FirebaseDB || !currentUserId) {
-        console.warn('⚠️ Cannot save: no user authenticated');
+        log.warn('Cannot save: no user authenticated');
         return;
     }
     
@@ -236,9 +249,9 @@ async function saveToFirestore() {
             lastDate: getTodayDate()
         });
         
-        console.log('✅ Data saved to Firestore');
+        log.dbOperation('save', 'all-data');
     } catch (error) {
-        console.error('❌ Error saving data:', error);
+        log.error('Error saving data', error);
     }
 }
 
@@ -249,7 +262,7 @@ async function checkDailyReset() {
     const today = getTodayDate();
     
     if (lastDate && lastDate !== today) {
-        console.log('🔄 New day detected, performing reset...');
+        getLogger().debug('New day detected, performing reset');
         
         // Get yesterday's day index
         const yesterdayIndex = getDayIndexFromDate(lastDate);
@@ -310,17 +323,13 @@ function renderStreak() {
 
 function renderHabits() {
     if (!elements.habitsList) {
-        console.error('❌ habitsList element not found!');
+        getLogger().error('habitsList element not found');
         return;
     }
     
-    console.log('🎨 renderHabits called');
-    console.log('   Total habits in state:', habits.length);
-    console.log('   Today day index:', getTodayDayIndex());
-    console.log('   All habits:', habits);
+    getLogger().debug(`renderHabits: ${habits.length} total, ${getTodaysHabits().length} today`);
     
     let todaysHabits = getTodaysHabits();
-    console.log('   Todays habits:', todaysHabits.length);
     
     if (currentFilter === 'pending') {
         todaysHabits = todaysHabits.filter(h => !h.completed);
@@ -456,11 +465,12 @@ function render() {
 // ========================================
 
 async function addHabits(dayConfigs) {
-    console.log('📝 addHabits called with:', dayConfigs);
+    const log = getLogger();
+    log.debug('addHabits called');
     
     const days = Object.keys(dayConfigs).map(Number);
     if (days.length === 0) {
-        console.warn('⚠️ No days provided');
+        log.warn('No days provided');
         return;
     }
     
@@ -480,15 +490,14 @@ async function addHabits(dayConfigs) {
         };
     });
     
-    console.log('📝 Creating habits:', newHabits);
+    log.debug(`Creating ${newHabits.length} habits`);
     
     // Add to local state FIRST
     habits.push(...newHabits);
-    console.log('📝 Added to local state. Total habits:', habits.length);
     
     // Render immediately so user sees the habit
     render();
-    console.log('✅ Habit added locally!');
+    log.dbOperation('create', 'habits', newHabits.length);
     
     // Try to save to Firestore (non-blocking for UI)
     try {
@@ -496,10 +505,10 @@ async function addHabits(dayConfigs) {
             for (const habit of newHabits) {
                 await window.FirebaseDB.saveHabitToFirestore(habit);
             }
-            console.log('✅ Habits synced to Firestore');
+            log.dbOperation('sync', 'habits');
         }
     } catch (error) {
-        console.warn('⚠️ Could not sync to Firestore (ad blocker?):', error.message);
+        log.warn('Could not sync to Firestore: ' + error.message);
         // Don't rollback - keep habit locally, it will sync when Firestore is available
     }
 }
@@ -845,10 +854,9 @@ function initEventListeners() {
     if (closeConfigBtn) closeConfigBtn.addEventListener('click', hideDayConfigPanel);
     
     if (elements.habitForm) {
-        console.log('✅ Form found, attaching submit handler');
+        getLogger().debug('Form found, attaching submit handler');
         elements.habitForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('📝 Form submitted!');
             
             // Auto-save any open day config panel
             const panel = document.getElementById('day-config-panel');
@@ -862,9 +870,6 @@ function initEventListeners() {
             
             // Enforce character limits
             const trimmedName = name.substring(0, 30);
-            
-            console.log('📝 Form values:', { name: trimmedName, time, description });
-            console.log('📝 Day configs:', addFormDayConfigs);
             
             const selectedDays = Object.keys(addFormDayConfigs);
             
@@ -918,12 +923,12 @@ function initEventListeners() {
                 resetAddFormDaySelector();
                 collapseAddHabitAccordion();
             } catch (error) {
-                console.error('❌ Form submission error:', error);
+                getLogger().error('Form submission error', error);
                 alert('Error adding habit: ' + error.message);
             }
         });
     } else {
-        console.error('❌ habit-form element not found!');
+        getLogger().error('habit-form element not found');
     }
     
     elements.filterButtons.forEach(btn => {
@@ -992,6 +997,41 @@ function updateThemeIcon(theme) {
 }
 
 // ========================================
+// Header Greeting
+// ========================================
+
+/**
+ * Update the header greeting based on time of day and username
+ */
+function updateHeaderGreeting() {
+    const greetingEl = document.getElementById('header-greeting');
+    if (!greetingEl) return;
+    
+    const hour = new Date().getHours();
+    let greeting;
+    
+    if (hour >= 5 && hour < 12) {
+        greeting = 'Good morning';
+    } else if (hour >= 12 && hour < 17) {
+        greeting = 'Good afternoon';
+    } else if (hour >= 17 && hour < 21) {
+        greeting = 'Good evening';
+    } else {
+        greeting = 'Good night';
+    }
+    
+    // Add user name if available
+    if (window.currentUserName) {
+        greeting += ', ' + window.currentUserName;
+    }
+    
+    greetingEl.textContent = greeting;
+}
+
+// Expose globally for settings module
+window.updateHeaderGreeting = updateHeaderGreeting;
+
+// ========================================
 // App Initialization
 // ========================================
 
@@ -1000,7 +1040,8 @@ function updateThemeIcon(theme) {
  * Data is NOT loaded until user is authenticated
  */
 async function init() {
-    console.log('🚀 Initializing Habit Tracker...');
+    const log = getLogger();
+    log.info('Initializing Habit Tracker...');
     
     // CRITICAL: Initialize DOM elements first
     initElements();
@@ -1013,7 +1054,7 @@ async function init() {
     // The actual data loading happens when onAuthStateChanged fires in index.html
     // and calls window.initHabitData()
     
-    console.log('⏳ Waiting for authentication...');
+    log.debug('Waiting for authentication...');
 }
 
 /**
@@ -1021,8 +1062,11 @@ async function init() {
  * This ensures data is loaded ONLY for authenticated users
  */
 window.initHabitData = async function() {
-    console.log('🔐 User authenticated, loading data...');
+    getLogger().debug('User authenticated, loading data...');
     await loadFromFirestore();
+    
+    // Update header greeting with user name
+    updateHeaderGreeting();
 };
 
 // Start when DOM is ready

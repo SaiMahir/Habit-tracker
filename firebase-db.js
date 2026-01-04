@@ -5,23 +5,19 @@
  * ========
  * This module handles all Firestore database operations with USER-SCOPED data.
  * 
- * WHY THIS FIX IS NEEDED:
- * =======================
- * PROBLEM: The previous implementation used localStorage which is browser-local
- * but NOT user-scoped. When multiple users log in on the same browser, they all
- * see the same data because localStorage doesn't know about user identity.
- * 
- * SOLUTION: Use Firebase Firestore with user-specific paths:
- *   - users/{uid}/habits/{habitId}     - Individual habit documents
- *   - users/{uid}/history/{date}       - Daily completion history
- *   - users/{uid}/stats                - User statistics (streak, etc.)
- * 
- * Each user's data is completely isolated. The {uid} is the unique identifier
- * from Firebase Authentication (auth.currentUser.uid).
- * 
  * SECURITY:
  * =========
- * Firestore Security Rules should be set to:
+ * - All data operations are scoped to authenticated user's UID
+ * - No cross-user data access is possible
+ * - Firestore Security Rules enforce server-side access control
+ * - Sensitive data is never logged
+ * 
+ * DATA STRUCTURE:
+ *   - users/{uid}/habits/{habitId}     - Individual habit documents
+ *   - users/{uid}/history/{date}       - Daily completion history
+ *   - users/{uid}/stats/current        - User statistics (streak, etc.)
+ * 
+ * FIRESTORE SECURITY RULES:
  *   rules_version = '2';
  *   service cloud.firestore {
  *     match /databases/{database}/documents {
@@ -30,12 +26,25 @@
  *       }
  *     }
  *   }
- * 
- * This ensures users can ONLY access their own data.
  */
 
 // ========================================
-// Wait for Firebase to be initialized
+// Helper: Get Logger (with fallback)
+// ========================================
+
+function getLogger() {
+    return window.Logger || {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: (msg) => console.error(msg),
+        dbOperation: () => {},
+        maskUID: (uid) => uid ? `${uid.substring(0, 4)}...` : '[no-uid]'
+    };
+}
+
+// ========================================
+// User Authentication Helpers
 // ========================================
 
 /**
@@ -43,17 +52,19 @@
  * @returns {string|null} User ID or null if not logged in
  */
 function getCurrentUserId() {
+    const log = getLogger();
     const auth = window.firebaseAuth;
+    
     if (!auth) {
-        console.error('❌ Firebase Auth not initialized');
+        log.error('Firebase Auth not initialized');
         return null;
     }
     if (!auth.currentUser) {
-        console.warn('⚠️ No authenticated user - auth.currentUser is null');
+        log.warn('No authenticated user');
         return null;
     }
     if (!auth.currentUser.uid) {
-        console.error('❌ User exists but has no UID');
+        log.error('User exists but has no UID');
         return null;
     }
     return auth.currentUser.uid;
@@ -118,17 +129,18 @@ function getStatsPath(userId) {
  * @returns {Promise<Array>} Array of habit objects
  */
 async function loadHabitsFromFirestore() {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
     // Check user is logged in before making any Firestore calls
     if (!auth || !auth.currentUser || !auth.currentUser.uid) {
-        console.error('❌ Cannot load habits: No authenticated user');
+        log.error('Cannot load habits: No authenticated user');
         return [];
     }
     
     if (!db) {
-        console.error('❌ Cannot load habits: Firestore not initialized');
+        log.error('Cannot load habits: Firestore not initialized');
         return [];
     }
     
@@ -149,14 +161,14 @@ async function loadHabitsFromFirestore() {
             if (!data.userId || data.userId === userId) {
                 habits.push({ id: doc.id, ...data });
             } else {
-                console.warn(`⚠️ Skipping habit ${doc.id} - userId mismatch`);
+                log.warn('Skipping habit with mismatched userId');
             }
         });
         
-        console.log(`✅ Loaded ${habits.length} habits for user ${userId}`);
+        log.dbOperation('load', 'habits', habits.length);
         return habits;
     } catch (error) {
-        console.error('❌ Error loading habits:', error);
+        log.error('Error loading habits', error);
         return [];
     }
 }
@@ -169,6 +181,7 @@ async function loadHabitsFromFirestore() {
  * @returns {Promise<string>} The habit ID
  */
 async function saveHabitToFirestore(habit) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -199,12 +212,10 @@ async function saveHabitToFirestore(habit) {
             updatedAt: new Date().toISOString()
         });
         
-        console.log(`✅ Saved habit ${habit.id} for user ${userId}`);
+        log.dbOperation('save', 'habit');
         return habit.id;
     } catch (error) {
-        console.error('❌ Error saving habit:', error);
-        console.error('   User ID:', userId);
-        console.error('   Habit ID:', habit.id);
+        log.error('Error saving habit', error);
         throw error;
     }
 }
@@ -216,6 +227,7 @@ async function saveHabitToFirestore(habit) {
  * @returns {Promise<void>}
  */
 async function saveAllHabitsToFirestore(habits) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -238,7 +250,7 @@ async function saveAllHabitsToFirestore(habits) {
         
         habits.forEach(habit => {
             if (!habit.id) {
-                console.warn('⚠️ Skipping habit without ID');
+                log.warn('Skipping habit without ID');
                 return;
             }
             // Use subcollection path: doc(db, 'users', uid, 'habits', habitId)
@@ -251,9 +263,9 @@ async function saveAllHabitsToFirestore(habits) {
         });
         
         await batch.commit();
-        console.log(`✅ Batch saved ${habits.length} habits for user ${userId}`);
+        log.dbOperation('batch-save', 'habits', habits.length);
     } catch (error) {
-        console.error('❌ Error batch saving habits:', error);
+        log.error('Error batch saving habits', error);
         throw error;
     }
 }
@@ -266,6 +278,7 @@ async function saveAllHabitsToFirestore(habits) {
  * @returns {Promise<void>}
  */
 async function updateHabitInFirestore(habitId, updates) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -291,9 +304,9 @@ async function updateHabitInFirestore(habitId, updates) {
             updatedAt: new Date().toISOString()
         });
         
-        console.log(`✅ Updated habit ${habitId} for user ${userId}`);
+        log.dbOperation('update', 'habit');
     } catch (error) {
-        console.error('❌ Error updating habit:', error);
+        log.error('Error updating habit', error);
         throw error;
     }
 }
@@ -305,6 +318,7 @@ async function updateHabitInFirestore(habitId, updates) {
  * @returns {Promise<void>}
  */
 async function deleteHabitFromFirestore(habitId) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -326,9 +340,9 @@ async function deleteHabitFromFirestore(habitId) {
         const habitRef = doc(db, 'users', userId, 'habits', habitId);
         await deleteDoc(habitRef);
         
-        console.log(`✅ Deleted habit ${habitId} for user ${userId}`);
+        log.dbOperation('delete', 'habit');
     } catch (error) {
-        console.error('❌ Error deleting habit:', error);
+        log.error('Error deleting habit', error);
         throw error;
     }
 }
@@ -343,17 +357,18 @@ async function deleteHabitFromFirestore(habitId) {
  * @returns {Promise<object>} History object keyed by date
  */
 async function loadHistoryFromFirestore() {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
     // Check user is logged in before making any Firestore calls
     if (!auth || !auth.currentUser || !auth.currentUser.uid) {
-        console.error('❌ Cannot load history: No authenticated user');
+        log.error('Cannot load history: No authenticated user');
         return {};
     }
     
     if (!db) {
-        console.error('❌ Cannot load history: Firestore not initialized');
+        log.error('Cannot load history: Firestore not initialized');
         return {};
     }
     
@@ -375,10 +390,10 @@ async function loadHistoryFromFirestore() {
             }
         });
         
-        console.log(`✅ Loaded history for ${Object.keys(history).length} days for user ${userId}`);
+        log.dbOperation('load', 'history', Object.keys(history).length);
         return history;
     } catch (error) {
-        console.error('❌ Error loading history:', error);
+        log.error('Error loading history', error);
         return {};
     }
 }
@@ -391,6 +406,7 @@ async function loadHistoryFromFirestore() {
  * @returns {Promise<void>}
  */
 async function saveHistoryToFirestore(date, habitRecords) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -417,9 +433,9 @@ async function saveHistoryToFirestore(date, habitRecords) {
             updatedAt: new Date().toISOString()
         });
         
-        console.log(`✅ Saved history for ${date} for user ${userId}`);
+        log.dbOperation('save', 'history');
     } catch (error) {
-        console.error('❌ Error saving history:', error);
+        log.error('Error saving history', error);
         throw error;
     }
 }
@@ -434,17 +450,18 @@ async function saveHistoryToFirestore(date, habitRecords) {
  * @returns {Promise<object>} Stats object
  */
 async function loadStatsFromFirestore() {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
     // Check user is logged in before making any Firestore calls
     if (!auth || !auth.currentUser || !auth.currentUser.uid) {
-        console.error('❌ Cannot load stats: No authenticated user');
+        log.error('Cannot load stats: No authenticated user');
         return { streak: 0, bestStreak: 0, lastDate: null, totalHabits: 0, totalCompletions: 0 };
     }
     
     if (!db) {
-        console.error('❌ Cannot load stats: Firestore not initialized');
+        log.error('Cannot load stats: Firestore not initialized');
         return { streak: 0, bestStreak: 0, lastDate: null, totalHabits: 0, totalCompletions: 0 };
     }
     
@@ -472,23 +489,23 @@ async function loadStatsFromFirestore() {
             const data = snapshot.data();
             // Double-check userId if present
             if (!data.userId || data.userId === userId) {
-                console.log(`✅ Loaded user stats for user ${userId}`);
+                log.dbOperation('load', 'stats');
                 return data;
             }
         }
         
         // Stats document doesn't exist - create it with default values
-        console.log(`📝 Creating default stats document for user ${userId}`);
+        log.info('Creating default stats document');
         await setDoc(statsRef, {
             ...defaultStats,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         });
-        console.log(`✅ Default stats document created for user ${userId}`);
+        log.dbOperation('create', 'stats');
         
         return defaultStats;
     } catch (error) {
-        console.error('❌ Error loading stats:', error);
+        log.error('Error loading stats', error);
         return defaultStats;
     }
 }
@@ -500,6 +517,7 @@ async function loadStatsFromFirestore() {
  * @returns {Promise<void>}
  */
 async function saveStatsToFirestore(stats) {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
@@ -525,9 +543,9 @@ async function saveStatsToFirestore(stats) {
             updatedAt: new Date().toISOString()
         });
         
-        console.log(`✅ Saved user stats for user ${userId}`);
+        log.dbOperation('save', 'stats');
     } catch (error) {
-        console.error('❌ Error saving stats:', error);
+        log.error('Error saving stats', error);
         throw error;
     }
 }
@@ -547,13 +565,14 @@ async function saveStatsToFirestore(stats) {
  * @returns {Promise<boolean>} Always returns false (migration disabled)
  */
 async function migrateLocalStorageToFirestore() {
+    const log = getLogger();
     const userId = getCurrentUserId();
     if (!userId) return false;
     
     // Check if already migrated for this user
     const migrationKey = `habitTracker_migrated_firestore_${userId}`;
     if (localStorage.getItem(migrationKey)) {
-        console.log('📦 Already migrated to Firestore');
+        log.debug('Already migrated to Firestore');
         return false;
     }
     
@@ -573,18 +592,17 @@ async function migrateLocalStorageToFirestore() {
         if (localStorage.getItem(key)) {
             hadOldData = true;
             localStorage.removeItem(key);
-            console.log(`🗑️ Cleared shared localStorage key: ${key}`);
+            log.debug('Cleared shared localStorage key');
         }
     });
     
     if (hadOldData) {
-        console.warn('⚠️ Cleared non-user-scoped localStorage data to prevent cross-user contamination.');
-        console.warn('   Each user now has their own isolated data in Firestore.');
+        log.warn('Cleared non-user-scoped localStorage data to prevent cross-user contamination');
     }
     
     // Mark as "migrated" (really just "cleaned up") for this user
     localStorage.setItem(migrationKey, 'true');
-    console.log('✅ User data isolation check complete');
+    log.info('User data isolation check complete');
     
     return false;
 }
@@ -596,16 +614,17 @@ async function migrateLocalStorageToFirestore() {
  * @returns {Promise<boolean>} True if cleared successfully
  */
 async function clearUserFirestoreData() {
+    const log = getLogger();
     const auth = window.firebaseAuth;
     const db = getDb();
     
     if (!auth || !auth.currentUser || !auth.currentUser.uid) {
-        console.error('❌ Cannot clear data: No authenticated user');
+        log.error('Cannot clear data: No authenticated user');
         return false;
     }
     
     if (!db) {
-        console.error('❌ Cannot clear data: Firestore not initialized');
+        log.error('Cannot clear data: Firestore not initialized');
         return false;
     }
     
@@ -614,7 +633,7 @@ async function clearUserFirestoreData() {
     try {
         const { collection, getDocs, doc, deleteDoc, writeBatch } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
         
-        console.log(`🗑️ Clearing all data for user ${userId}...`);
+        log.info('Clearing all user data...');
         
         // Delete all habits
         const habitsRef = collection(db, 'users', userId, 'habits');
@@ -624,7 +643,7 @@ async function clearUserFirestoreData() {
             batch1.delete(doc(db, 'users', userId, 'habits', docSnap.id));
         });
         await batch1.commit();
-        console.log(`✅ Deleted ${habitsSnapshot.size} habits`);
+        log.dbOperation('delete', 'habits', habitsSnapshot.size);
         
         // Delete all history
         const historyRef = collection(db, 'users', userId, 'history');
@@ -634,21 +653,21 @@ async function clearUserFirestoreData() {
             batch2.delete(doc(db, 'users', userId, 'history', docSnap.id));
         });
         await batch2.commit();
-        console.log(`✅ Deleted ${historySnapshot.size} history entries`);
+        log.dbOperation('delete', 'history', historySnapshot.size);
         
         // Delete stats
         const statsRef = doc(db, 'users', userId, 'stats', 'current');
         await deleteDoc(statsRef);
-        console.log('✅ Deleted stats');
+        log.dbOperation('delete', 'stats');
         
         // Clear migration flag so it runs cleanup again
         const migrationKey = `habitTracker_migrated_firestore_${userId}`;
         localStorage.removeItem(migrationKey);
         
-        console.log('✅ All user data cleared successfully');
+        log.info('All user data cleared successfully');
         return true;
     } catch (error) {
-        console.error('❌ Error clearing user data:', error);
+        log.error('Error clearing user data', error);
         return false;
     }
 }
@@ -681,4 +700,8 @@ window.FirebaseDB = {
     clearUserFirestoreData
 };
 
-console.log('🔥 Firebase DB service loaded');
+// Initialize logger and log service ready
+(function() {
+    const log = getLogger();
+    log.info('Firebase DB service loaded');
+})();

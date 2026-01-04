@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com/firebasejs/; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Weekly View - Habit Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth.css">
@@ -47,6 +52,9 @@
                                 <span class="dropdown-email" id="dropdown-email">user@email.com</span>
                             </div>
                             <div class="dropdown-divider"></div>
+                            <button class="dropdown-item settings" id="settings-btn">
+                                <span>⚙️</span> Settings
+                            </button>
                             <button class="dropdown-item logout" id="logout-btn">
                                 <span>🚪</span> Logout
                             </button>
@@ -154,6 +162,112 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settings-modal">
+        <div class="settings-modal-content">
+            <div class="settings-modal-header">
+                <h2><span>⚙️</span> Settings</h2>
+                <button class="settings-close-btn" id="settings-close">×</button>
+            </div>
+            
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="username">
+                    <span>👤</span> Username
+                </button>
+                <button class="settings-tab" data-tab="password">
+                    <span>🔒</span> Password
+                </button>
+            </div>
+            
+            <!-- Settings Message -->
+            <div class="settings-message" id="settings-message"></div>
+            
+            <!-- Username Tab -->
+            <div class="settings-tab-content active" id="username-tab">
+                <form id="username-form">
+                    <div class="settings-form-group">
+                        <label for="new-username">New Username</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="new-username" 
+                                class="settings-input"
+                                placeholder="Enter new username"
+                                autocomplete="username"
+                                maxlength="50"
+                            >
+                        </div>
+                    </div>
+                    <button type="submit" class="settings-btn settings-btn-primary" id="save-username-btn">
+                        <span>💾</span> Save Username
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Password Tab -->
+            <div class="settings-tab-content" id="password-tab">
+                <form id="password-form">
+                    <div class="settings-form-group">
+                        <label for="current-password">Current Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="current-password" 
+                                class="settings-input"
+                                placeholder="Enter current password"
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="current-password">👁️</button>
+                        </div>
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="new-password">New Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="new-password" 
+                                class="settings-input"
+                                placeholder="Enter new password"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="new-password">👁️</button>
+                        </div>
+                        <div class="settings-password-strength">
+                            <div class="settings-strength-bar">
+                                <div class="strength-fill" id="settings-strength-fill"></div>
+                            </div>
+                            <span class="strength-text" id="settings-strength-text">Password strength</span>
+                        </div>
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="confirm-new-password">Confirm New Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirm-new-password" 
+                                class="settings-input"
+                                placeholder="Confirm new password"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="confirm-new-password">👁️</button>
+                        </div>
+                        <div class="password-match-indicator" id="password-match-indicator"></div>
+                    </div>
+                    <button type="submit" class="settings-btn settings-btn-primary" id="save-password-btn">
+                        <span>🔐</span> Update Password
+                    </button>
+                </form>
+            </div>
+            
+            <div class="settings-modal-footer">
+                <button type="button" class="settings-btn settings-btn-secondary" id="settings-cancel">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Auth Check Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -201,6 +315,9 @@
             greetingEl.textContent = greeting;
         }
         
+        // Expose globally for settings module
+        window.updateHeaderGreeting = updateHeaderGreeting;
+        
         // Header streak function
         function updateHeaderStreak(streak = 0) {
             const streakEl = document.getElementById('header-streak');
@@ -232,13 +349,26 @@
 
         // Flag to track if we've already handled auth
         let authHandled = false;
+        
+        // Get Logger (falls back to no-op if not loaded)
+        const getLogger = () => window.Logger || {
+            debug: () => {},
+            info: () => {},
+            warn: () => {},
+            error: (msg, err) => console.error(msg, err),
+            authSuccess: () => {},
+            authFailure: () => {},
+            dbOperation: () => {},
+            maskUID: (uid) => uid ? `${uid.slice(0,4)}...${uid.slice(-4)}` : 'unknown'
+        };
 
         // Check auth state
         onAuthStateChanged(auth, async (user) => {
             // Prevent multiple redirects
             if (authHandled && !user) return;
             
-            console.log("📅 Weekly View - Auth state:", user ? user.email : "no user");
+            const log = getLogger();
+            log.debug('Auth state changed (weekly view)');
             
             if (user) {
                 // User is signed in
@@ -258,18 +388,22 @@
                 // Update header greeting
                 updateHeaderGreeting();
                 
-                console.log("✅ User logged in:", user.email);
-                console.log("👤 User ID:", user.uid);
+                log.authSuccess('session-restored');
                 
                 // CRITICAL: Load user's data AFTER authentication confirmed
                 if (window.initWeeklyData) {
                     await window.initWeeklyData();
                 }
+                
+                // Initialize settings module
+                if (window.initSettings) {
+                    window.initSettings();
+                }
             } else {
                 // Wait a moment for Firebase to restore session
                 setTimeout(() => {
                     if (!authHandled && !auth.currentUser) {
-                        console.log("❌ User not logged in, redirecting...");
+                        log.debug('No user session, redirecting to login');
                         authLoading.style.display = 'none';
                         window.location.href = 'login.html';
                     }
@@ -294,7 +428,7 @@
                 await signOut(auth);
                 window.location.href = 'login.html';
             } catch (error) {
-                console.error("Logout error:", error);
+                getLogger().error('Logout error', error);
             }
         });
 
@@ -303,7 +437,9 @@
         window.firebaseDb = db;
     </script>
 
+    <script src="logger.js"></script>
     <script src="firebase-db.js"></script>
+    <script src="settings.js"></script>
     <script src="weekly.js"></script>
 </body>
 </html>

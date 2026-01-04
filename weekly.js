@@ -16,6 +16,19 @@
  * - Each user sees only their own habits
  */
 
+// Get Logger instance (must be available globally from logger.js)
+function getLogger() {
+    return window.Logger || {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: (msg, err) => console.error(msg, err),
+        authSuccess: () => {},
+        authFailure: () => {},
+        dbOperation: () => {}
+    };
+}
+
 // ========================================
 // Constants
 // ========================================
@@ -139,25 +152,26 @@ function getGroupDays(groupId) {
  * CRITICAL: Only called after authentication is confirmed
  */
 async function loadHabitsFromFirestore() {
+    const log = getLogger();
     if (!window.FirebaseDB) {
-        console.error('❌ FirebaseDB not loaded');
+        log.error('FirebaseDB not loaded');
         return;
     }
     
     const userId = window.FirebaseDB.getCurrentUserId();
     if (!userId) {
-        console.warn('⚠️ No authenticated user, cannot load habits');
+        log.warn('No authenticated user, cannot load habits');
         return;
     }
     
-    console.log(`📅 Loading habits for user: ${userId}`);
+    log.debug('Loading habits for weekly view');
     
     try {
         habits = await window.FirebaseDB.loadHabitsFromFirestore();
         isDataLoaded = true;
-        console.log(`✅ Loaded ${habits.length} total habits`);
+        log.dbOperation('load', 'habits', habits.length);
     } catch (error) {
-        console.error('❌ Error loading habits:', error);
+        log.error('Error loading habits', error);
     }
 }
 
@@ -441,7 +455,7 @@ function init() {
     initEventListeners();
     initModalListeners();
     // Data loading happens via initWeeklyData() after auth
-    console.log('📅 Weekly View UI initialized, waiting for auth...');
+    getLogger().debug('Weekly View UI initialized, waiting for auth');
 }
 
 /**
@@ -449,7 +463,7 @@ function init() {
  * This ensures data is loaded ONLY for authenticated users
  */
 window.initWeeklyData = async function() {
-    console.log('🔐 User authenticated, loading weekly data...');
+    getLogger().debug('User authenticated, loading weekly data');
     await loadHabitsFromFirestore();
     render();
     
@@ -526,11 +540,11 @@ async function deleteHabit(habitId) {
                 await window.FirebaseDB.deleteHabitFromFirestore(habitId);
             }
             
-            console.log(`✅ Deleted habit ${habitId}`);
+            getLogger().dbOperation('delete', 'habit');
             render();
             closeHabitModal();
         } catch (error) {
-            console.error('❌ Error deleting habit:', error);
+            getLogger().error('Error deleting habit', error);
             alert('Error deleting habit. Please try again.');
         }
     }
@@ -559,11 +573,11 @@ async function deleteHabitGroup(habitId) {
                 }
             }
             
-            console.log(`✅ Deleted ${groupHabits.length} habits in group`);
+            getLogger().dbOperation('delete', 'habit-group', groupHabits.length);
             render();
             closeHabitModal();
         } catch (error) {
-            console.error('❌ Error deleting habit group:', error);
+            getLogger().error('Error deleting habit group', error);
             alert('Error deleting habits. Please try again.');
         }
     }

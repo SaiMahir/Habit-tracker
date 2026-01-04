@@ -52,8 +52,22 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Get Logger instance (must be available globally from logger.js)
+function getLogger() {
+    return window.Logger || {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: (msg, err) => console.error(msg, err),
+        authSuccess: () => {},
+        authFailure: () => {},
+        dbOperation: () => {}
+    };
+}
+
 // Log connection status
-console.log("🔥 Firebase initialized successfully!");
+const initLog = getLogger();
+initLog.info('Firebase Auth initialized');
 
 // ========================================
 // DOM Elements
@@ -173,9 +187,85 @@ function getErrorMessage(errorCode) {
 // ========================================
 // Verification Screen State
 // ========================================
+// ========================================
+// Rate Limiting Configuration
+// ========================================
+const rateLimiter = {
+    lastAttempt: 0,
+    failedAttempts: 0,
+    lockoutUntil: 0,
+    
+    // Check if action is allowed
+    canAttempt() {
+        const now = Date.now();
+        
+        // Check if in lockout period
+        if (now < this.lockoutUntil) {
+            const remainingSecs = Math.ceil((this.lockoutUntil - now) / 1000);
+            return { allowed: false, message: `Too many attempts. Try again in ${remainingSecs} seconds.` };
+        }
+        
+        // Minimum 1.5 seconds between attempts
+        if (now - this.lastAttempt < 1500) {
+            return { allowed: false, message: 'Please wait before trying again.' };
+        }
+        
+        return { allowed: true };
+    },
+    
+    // Record an attempt
+    recordAttempt(success = false) {
+        this.lastAttempt = Date.now();
+        
+        if (success) {
+            this.failedAttempts = 0;
+            this.lockoutUntil = 0;
+        } else {
+            this.failedAttempts++;
+            
+            // Progressive lockout: 5 failures = 30s, 10 = 60s, 15+ = 300s
+            if (this.failedAttempts >= 15) {
+                this.lockoutUntil = Date.now() + 300000; // 5 minutes
+            } else if (this.failedAttempts >= 10) {
+                this.lockoutUntil = Date.now() + 60000; // 1 minute
+            } else if (this.failedAttempts >= 5) {
+                this.lockoutUntil = Date.now() + 30000; // 30 seconds
+            }
+        }
+    }
+};
+
+// ========================================
+// Verification State (with secure password handling)
+// ========================================
 let verificationState = {
     email: '',
-    password: '',
+    _pwd: null,
+    _pwdClearTimer: null,
+    
+    // Secure password setter - auto-clears after 5 minutes
+    set password(val) {
+        if (this._pwdClearTimer) clearTimeout(this._pwdClearTimer);
+        this._pwd = val;
+        if (val) {
+            this._pwdClearTimer = setTimeout(() => {
+                this._pwd = null;
+                getLogger().debug('Verification password cleared from memory (timeout)');
+            }, 300000); // 5 minutes
+        }
+    },
+    
+    // Password getter - returns value once then clears
+    get password() {
+        return this._pwd;
+    },
+    
+    // Clear password manually
+    clearPassword() {
+        if (this._pwdClearTimer) clearTimeout(this._pwdClearTimer);
+        this._pwd = null;
+    },
+    
     resendCooldown: 0,
     cooldownTimer: null
 };
@@ -337,7 +427,7 @@ async function handleResendFromScreen() {
         startResendCooldown(60);
         
     } catch (error) {
-        console.error('❌ Resend verification error:', error.code, error.message);
+        getLogger().error('Resend verification error', error);
         showMessage(getErrorMessage(error.code), 'error');
     } finally {
         if (elements.resendEmailBtn) {
@@ -448,7 +538,7 @@ async function handleResendVerification() {
         }, 1000);
         
     } catch (error) {
-        console.error('❌ Resend verification error:', error.code, error.message);
+        getLogger().error('Resend verification error', error);
         showMessage(getErrorMessage(error.code), 'error');
         resendBtn.disabled = false;
     } finally {
@@ -556,6 +646,7 @@ function switchForm(formName) {
  * @param {string} displayName - User's display name
  */
 async function createUserDocument(user, displayName = '') {
+    const log = getLogger();
     try {
         const userRef = doc(db, 'users', user.uid);
         
@@ -571,7 +662,7 @@ async function createUserDocument(user, displayName = '') {
             }
         });
         
-        console.log("✅ User document created in Firestore");
+        log.dbOperation('create', 'user-document');
         
         // Create default stats document at users/{userId}/stats/current
         const statsRef = doc(db, 'users', user.uid, 'stats', 'current');
@@ -586,10 +677,10 @@ async function createUserDocument(user, displayName = '') {
             updatedAt: serverTimestamp()
         });
         
-        console.log("✅ Default stats document created in Firestore");
+        log.dbOperation('create', 'stats');
         
     } catch (error) {
-        console.error("Error creating user document:", error);
+        log.error('Error creating user document', error);
         throw error;
     }
 }
@@ -603,7 +694,7 @@ async function updateLastLogin(uid) {
         const userRef = doc(db, 'users', uid);
         await setDoc(userRef, { lastLogin: serverTimestamp() }, { merge: true });
     } catch (error) {
-        console.error("Error updating last login:", error);
+        getLogger().error('Error updating last login', error);
     }
 }
 
@@ -613,6 +704,13 @@ async function updateLastLogin(uid) {
  */
 async function handleSignup(e) {
     e.preventDefault();
+    
+    // Check rate limit
+    const rateCheck = rateLimiter.canAttempt();
+    if (!rateCheck.allowed) {
+        showMessage(rateCheck.message, 'error');
+        return;
+    }
     
     const name = elements.signupName.value.trim();
     const email = elements.signupEmail.value.trim();
@@ -644,25 +742,27 @@ async function handleSignup(e) {
     setButtonLoading(submitBtn, true);
     
     try {
-        console.log('🔄 Creating user account...');
+        const log = getLogger();
+        log.debug('Creating user account...');
         
         // Create user with Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        console.log('✅ User created:', user.uid);
+        // Record successful attempt
+        rateLimiter.recordAttempt(true);
+        log.authSuccess('signup');
         
         // Update display name
         await updateProfile(user, { displayName: name });
-        console.log('✅ Profile updated with name:', name);
+        log.debug('Profile updated with display name');
         
         // Send email verification
         await sendEmailVerification(user);
-        console.log('✅ Verification email sent to:', email);
+        log.debug('Verification email sent');
         
         // Create user document in Firestore
         await createUserDocument(user, name);
-        console.log('✅ Firestore document created');
         
         // Sign out the user so they must verify email first
         await signOut(auth);
@@ -673,10 +773,9 @@ async function handleSignup(e) {
         setButtonLoading(submitBtn, false);
         
     } catch (error) {
-        console.error('❌ Signup error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Full error object:', JSON.stringify(error, null, 2));
+        // Record failed attempt
+        rateLimiter.recordAttempt(false);
+        getLogger().authFailure('signup', error);
         
         // Show detailed error for debugging
         const errorMsg = error.code 
@@ -694,6 +793,13 @@ async function handleSignup(e) {
 async function handleLogin(e) {
     e.preventDefault();
     
+    // Check rate limit
+    const rateCheck = rateLimiter.canAttempt();
+    if (!rateCheck.allowed) {
+        showMessage(rateCheck.message, 'error');
+        return;
+    }
+    
     const email = elements.loginEmail.value.trim();
     const password = elements.loginPassword.value;
     
@@ -706,15 +812,18 @@ async function handleLogin(e) {
     setButtonLoading(submitBtn, true);
     
     try {
-        console.log('🔄 Logging in...');
+        const log = getLogger();
+        log.debug('Logging in...');
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        console.log('✅ User authenticated:', user.uid);
+        // Record successful attempt
+        rateLimiter.recordAttempt(true);
+        log.authSuccess('login');
         
         // Check if email is verified
         if (!user.emailVerified) {
-            console.log('⚠️ Email not verified');
+            log.warn('Email not verified for user');
             await signOut(auth);
             showVerificationScreen(email, password);
             showMessage('Please verify your email before logging in.', 'info');
@@ -724,7 +833,7 @@ async function handleLogin(e) {
         
         // Update last login
         await updateLastLogin(user.uid);
-        console.log('✅ Last login updated');
+        log.debug('Last login updated');
         
         showMessage('Login successful! Redirecting...', 'success');
         
@@ -734,7 +843,9 @@ async function handleLogin(e) {
         }, 1000);
         
     } catch (error) {
-        console.error('❌ Login error:', error.code, error.message);
+        // Record failed attempt
+        rateLimiter.recordAttempt(false);
+        getLogger().authFailure('login', error);
         showMessage(getErrorMessage(error.code), 'error');
         setButtonLoading(submitBtn, false);
     }
@@ -746,6 +857,13 @@ async function handleLogin(e) {
  */
 async function handlePasswordReset(e) {
     e.preventDefault();
+    
+    // Check rate limit
+    const rateCheck = rateLimiter.canAttempt();
+    if (!rateCheck.allowed) {
+        showMessage(rateCheck.message, 'error');
+        return;
+    }
     
     const email = elements.resetEmail.value.trim();
     
@@ -759,6 +877,7 @@ async function handlePasswordReset(e) {
     
     try {
         await sendPasswordResetEmail(auth, email);
+        rateLimiter.recordAttempt(true);
         showMessage('Password reset email sent! Check your inbox.', 'success');
         
         // Switch back to login after delay
@@ -767,7 +886,8 @@ async function handlePasswordReset(e) {
         }, 3000);
         
     } catch (error) {
-        console.error("Password reset error:", error);
+        rateLimiter.recordAttempt(false);
+        getLogger().error('Password reset error', error);
         showMessage(getErrorMessage(error.code), 'error');
     } finally {
         setButtonLoading(submitBtn, false);
@@ -782,7 +902,7 @@ async function handleLogout() {
         await signOut(auth);
         window.location.href = 'login.html';
     } catch (error) {
-        console.error("Logout error:", error);
+        getLogger().error('Logout error', error);
     }
 }
 
@@ -795,14 +915,15 @@ async function handleLogout() {
  * Redirect to main page if authenticated and verified
  */
 onAuthStateChanged(auth, (user) => {
+    const log = getLogger();
     if (user && user.emailVerified) {
         // User is signed in and verified, redirect to main page if on login page
         if (window.location.pathname.includes('login.html')) {
-            console.log("✅ User already logged in and verified, redirecting...");
+            log.debug('User already logged in and verified, redirecting');
             window.location.href = 'index.html';
         }
     } else if (user && !user.emailVerified) {
-        console.log("⚠️ User exists but email not verified");
+        log.debug('User exists but email not verified');
         // Don't redirect, let them verify first
     }
 });
@@ -887,7 +1008,7 @@ function initEventListeners() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initEventListeners();
-    console.log("🔐 Auth module initialized");
+    getLogger().info('Auth module initialized');
 });
 
 // Export for use in other modules

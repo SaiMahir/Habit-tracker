@@ -360,76 +360,205 @@
     padding: 20px 0;
 }
 
-.bar-chart {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+/* ========================================
+   Line Chart Styles
+   ======================================== */
+.line-chart-container {
+    position: relative;
+    width: 100%;
     height: 200px;
-    gap: 8px;
     padding: 0 10px;
 }
 
-.chart-bar-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    max-width: 60px;
-}
-
-.chart-bar-stack {
+.line-chart-svg {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 2px;
-    position: relative;
+    overflow: visible;
 }
 
-.bar-completed {
-    background: linear-gradient(180deg, var(--success-color), var(--accent-teal));
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    min-height: 0;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+/* Grid lines */
+.grid-line {
+    stroke: var(--border-color);
+    stroke-opacity: 0.2;
 }
 
-.bar-pending {
-    background: var(--bg-elevated);
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 0;
+.grid-label {
+    fill: var(--text-muted);
+    font-size: 10px;
 }
 
-.bar-tooltip {
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: nowrap;
+/* Main line path with glow effect */
+.line-chart-path {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+}
+
+/* Area fill under the line */
+.line-chart-area {
+    fill: url(#areaGradient);
+}
+
+/* Data points base styling */
+.chart-point {
+    cursor: pointer;
+    transform-origin: center;
+    transition: transform 0.2s ease;
+}
+
+.chart-point:hover {
+    transform: scale(1.3);
+}
+
+.chart-point .point-ring {
+    stroke: var(--success-color);
     opacity: 0;
-    transition: opacity var(--transition-fast);
-    pointer-events: none;
-    z-index: 10;
+    transition: opacity 0.2s ease;
 }
 
-.chart-bar-wrapper:hover .bar-tooltip {
+.chart-point:hover .point-ring {
     opacity: 1;
 }
 
+.chart-point .point-inner {
+    fill: var(--success-color);
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6));
+    transition: fill 0.2s ease;
+}
+
+/* Completed state - bright green */
+.chart-point.completed .point-inner {
+    fill: var(--success-color);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+}
+
+.chart-point.completed .point-ring {
+    stroke: var(--success-color);
+}
+
+/* Partial completion state - orange/yellow */
+.chart-point.partial .point-inner {
+    fill: var(--warning-color);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+
+.chart-point.partial .point-ring {
+    stroke: var(--warning-color);
+}
+
+/* Missed/zero completion state - muted */
+.chart-point.missed .point-inner {
+    fill: var(--text-muted);
+    opacity: 0.5;
+    filter: none;
+}
+
+.chart-point.missed .point-ring {
+    stroke: var(--text-muted);
+    opacity: 0.3;
+}
+
+/* No data state - dashed ring */
+.chart-point.no-data .point-inner {
+    fill: var(--bg-elevated);
+    stroke: var(--border-color);
+    stroke-width: 2;
+    stroke-dasharray: 3,2;
+    filter: none;
+}
+
+.chart-point.no-data .point-ring {
+    stroke: var(--border-color);
+    stroke-dasharray: 4,4;
+    opacity: 0.5;
+}
+
+/* Future date state */
+.chart-point.future .point-inner {
+    fill: var(--bg-elevated);
+    opacity: 0.3;
+    filter: none;
+}
+
+.chart-point.future .point-ring {
+    stroke: var(--border-color);
+    opacity: 0.2;
+}
+
+/* Today highlight */
+.chart-point.today .point-inner {
+    fill: var(--primary-color);
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.8));
+}
+
+.chart-point.today .point-ring {
+    stroke: var(--primary-color);
+    opacity: 1;
+    animation: todayPulse 2s ease-in-out infinite;
+}
+
+@keyframes todayPulse {
+    0%, 100% { r: 8; opacity: 1; }
+    50% { r: 12; opacity: 0.5; }
+}
+
+/* Tooltip styling */
+.line-chart-tooltip {
+    position: absolute;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 100px;
+    text-align: center;
+}
+
+.line-chart-tooltip.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.line-chart-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--border-color);
+}
+
+.tooltip-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.tooltip-stats {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.tooltip-rate {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--success-color);
+    margin-top: 4px;
+}
+
+/* X-axis styling (kept from original) */
 .chart-x-axis {
     display: flex;
     justify-content: space-between;
-    padding: 15px 10px 0;
+    padding: 15px 40px 0;
 }
 
 .x-label {
@@ -437,11 +566,10 @@
     text-align: center;
     font-size: 0.8rem;
     color: var(--text-muted);
-    max-width: 60px;
 }
 
 .x-label.today {
-    color: var(--success-color);
+    color: var(--primary-color);
     font-weight: 600;
 }
 
@@ -550,13 +678,94 @@
 .streak-visual {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
+}
+
+/* Calendar Header with Navigation */
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+}
+
+.calendar-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: white;
+    transform: scale(1.05);
+}
+
+.calendar-nav-btn:disabled,
+.calendar-nav-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.calendar-month-year {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.calendar-loading {
+    display: flex;
+    align-items: center;
+}
+
+.mini-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Weekday Labels */
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .streak-calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 6px;
+    transition: opacity 0.2s ease;
+}
+
+.streak-calendar.loading {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .calendar-day {
@@ -566,7 +775,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--text-muted);
     transition: all var(--transition-fast);
     cursor: default;
@@ -584,12 +794,40 @@
     color: white;
 }
 
-.calendar-day.today {
-    border: 2px solid var(--primary-color);
+.calendar-day.missed {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    opacity: 0.6;
 }
 
-.calendar-day:hover {
+.calendar-day.empty {
+    background: transparent;
+    pointer-events: none;
+}
+
+.calendar-day.future {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+.calendar-day:not(.empty):not(.future):hover {
     transform: scale(1.1);
+    z-index: 1;
+}
+
+.calendar-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px;
+    color: var(--error-color);
+    font-size: 0.9rem;
 }
 
 .streak-stats {
@@ -597,21 +835,24 @@
     justify-content: space-around;
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .streak-stat {
     text-align: center;
+    min-width: 80px;
 }
 
 .streak-stat-value {
     display: block;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: var(--accent-purple);
 }
 
 .streak-stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
@@ -903,8 +1144,16 @@
         align-items: flex-start;
     }
     
-    .bar-chart {
-        height: 150px;
+    .line-chart-container {
+        height: 160px;
+    }
+    
+    .chart-x-axis {
+        padding: 10px 30px 0;
+    }
+    
+    .x-label {
+        font-size: 0.7rem;
     }
 }
 
@@ -934,6 +1183,31 @@
     
     .calendar-day {
         font-size: 0.6rem;
+    }
+    
+    .calendar-header {
+        padding: 0;
+    }
+    
+    .calendar-nav-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .calendar-month-year {
+        font-size: 0.95rem;
+    }
+    
+    .calendar-weekdays {
+        font-size: 0.6rem;
+    }
+    
+    .streak-stat-value {
+        font-size: 1.3rem;
+    }
+    
+    .streak-stat-label {
+        font-size: 0.65rem;
     }
 }
 

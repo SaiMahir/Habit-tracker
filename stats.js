@@ -16,6 +16,19 @@
  * - Each user sees only their own statistics
  */
 
+// Get Logger instance (must be available globally from logger.js)
+function getLogger() {
+    return window.Logger || {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: (msg, err) => console.error(msg, err),
+        authSuccess: () => {},
+        authFailure: () => {},
+        dbOperation: () => {}
+    };
+}
+
 // ========================================
 // Constants & Configuration
 // ========================================
@@ -26,6 +39,7 @@ const STORAGE_KEYS = {
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 // ========================================
 // State Management
@@ -37,6 +51,12 @@ let streak = 0;
 let bestStreak = 0;
 let currentPeriod = 'week';
 let isDataLoaded = false;
+
+// Calendar month state - initialized to current month
+let calendarMonth = new Date().getMonth();  // 0-11
+let calendarYear = new Date().getFullYear();
+let isCalendarLoading = false;
+let monthHistoryCache = {}; // Cache for month-specific history data
 
 // ========================================
 // DOM Elements
@@ -74,10 +94,15 @@ const elements = {
     highlightWorstRate: document.getElementById('highlight-worst-rate'),
     highlightAvgRate: document.getElementById('highlight-avg-rate'),
     
-    // Streak calendar
+    // Streak calendar & navigation
     streakCalendar: document.getElementById('streak-calendar'),
     perfectDays: document.getElementById('perfect-days'),
     activeDays: document.getElementById('active-days'),
+    monthCompletionRate: document.getElementById('month-completion-rate'),
+    prevMonthBtn: document.getElementById('prev-month-btn'),
+    nextMonthBtn: document.getElementById('next-month-btn'),
+    calendarMonthLabel: document.getElementById('calendar-month-label'),
+    calendarLoading: document.getElementById('calendar-loading'),
     
     // Comparison
     thisWeekRate: document.getElementById('this-week-rate'),
@@ -200,18 +225,19 @@ function getDateStats(date) {
  * CRITICAL: Only called after authentication is confirmed
  */
 async function loadFromFirestore() {
+    const log = getLogger();
     if (!window.FirebaseDB) {
-        console.error('❌ FirebaseDB not loaded');
+        log.error('FirebaseDB not loaded');
         return;
     }
     
     const userId = window.FirebaseDB.getCurrentUserId();
     if (!userId) {
-        console.warn('⚠️ No authenticated user, cannot load stats');
+        log.warn('No authenticated user, cannot load stats');
         return;
     }
     
-    console.log(`📊 Loading statistics for user: ${userId}`);
+    log.debug('Loading statistics data');
     
     try {
         // Load habits
@@ -235,12 +261,12 @@ async function loadFromFirestore() {
         }
         
         isDataLoaded = true;
-        console.log('✅ Statistics data loaded');
+        log.info('Statistics data loaded');
         
         // Render the UI
         render();
     } catch (error) {
-        console.error('❌ Error loading statistics:', error);
+        log.error('Error loading statistics', error);
     }
 }
 
@@ -424,88 +450,620 @@ function renderOverview() {
     elements.highlightAvgRate.textContent = `${stats.avgRate}%`;
 }
 
+// ========================================
+// Line Chart Rendering
+// ========================================
+
 /**
- * Render the completion chart
+ * Generate a smooth curve path using Catmull-Rom spline interpolation
+ * This creates natural-looking curves through all data points
+ * 
+ * @param {Array} points - Array of {x, y} coordinates
+ * @param {number} tension - Curve tension (0 = sharp, 1 = very smooth)
+ * @returns {string} SVG path data string
+ */
+function generateSmoothPath(points, tension = 0.3) {
+    if (points.length < 2) return '';
+    if (points.length === 2) {
+        return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
+    }
+    
+    let path = `M ${points[0].x},${points[0].y}`;
+    
+    for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[Math.max(0, i - 1)];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[Math.min(points.length - 1, i + 2)];
+        
+        // Calculate control points using Catmull-Rom to Bezier conversion
+        const cp1x = p1.x + (p2.x - p0.x) * tension;
+        const cp1y = p1.y + (p2.y - p0.y) * tension;
+        const cp2x = p2.x - (p3.x - p1.x) * tension;
+        const cp2y = p2.y - (p3.y - p1.y) * tension;
+        
+        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    
+    return path;
+}
+
+/**
+ * Generate the area path (for gradient fill under the line)
+ * Closes the path at the bottom of the chart
+ * 
+ * @param {Array} points - Array of {x, y} coordinates
+ * @param {number} height - Chart height for bottom edge
+ * @param {number} tension - Curve tension
+ * @returns {string} SVG path data string
+ */
+function generateAreaPath(points, height, tension = 0.3) {
+    if (points.length < 2) return '';
+    
+    const linePath = generateSmoothPath(points, tension);
+    const lastPoint = points[points.length - 1];
+    const firstPoint = points[0];
+    
+    // Close the path: go down to bottom, across, and back up
+    return `${linePath} L ${lastPoint.x},${height} L ${firstPoint.x},${height} Z`;
+}
+
+/**
+ * Render the completion line chart
+ * 
+ * HOW IT WORKS:
+ * 1. Fetches date range based on current period (week/month)
+ * 2. Calculates completion percentage for each day
+ * 3. Converts percentages to SVG coordinates
+ * 4. Generates smooth curved path through all points
+ * 5. Renders data points with visual states (completed/pending/no-data)
+ * 6. Animates the line drawing using stroke-dasharray technique
+ * 
+ * TO UPDATE DATA: Just call renderChart() after data changes
  */
 function renderChart() {
     const dates = currentPeriod === 'week' ? getLastNDays(7) : getCurrentMonthDates();
     const today = getTodayDate();
-    const maxHeight = 180; // Max bar height in pixels
     
-    // Find max total for scaling
-    let maxTotal = 0;
-    dates.forEach(date => {
+    // SVG dimensions
+    const svgWidth = 600;
+    const svgHeight = 200;
+    const padding = { top: 20, right: 30, bottom: 10, left: 30 };
+    const chartWidth = svgWidth - padding.left - padding.right;
+    const chartHeight = svgHeight - padding.top - padding.bottom;
+    
+    // Get SVG elements
+    const svgLine = document.getElementById('chart-line');
+    const svgArea = document.getElementById('chart-area');
+    const svgPoints = document.getElementById('chart-points');
+    const svgGrid = document.getElementById('chart-grid');
+    const tooltip = document.getElementById('chart-tooltip');
+    
+    if (!svgLine || !svgArea || !svgPoints) {
+        getLogger().error('Line chart SVG elements not found');
+        return;
+    }
+    
+    // Calculate data points
+    const dataPoints = dates.map((date, index) => {
         const stats = getDateStats(date);
-        if (stats.total > maxTotal) maxTotal = stats.total;
+        return {
+            date,
+            stats,
+            isToday: date === today,
+            isFuture: date > today,
+            // X position: evenly distributed across chart width
+            x: padding.left + (index / Math.max(1, dates.length - 1)) * chartWidth,
+            // Y position: inverted (0% at bottom, 100% at top)
+            y: padding.top + chartHeight - (stats.rate / 100) * chartHeight
+        };
     });
     
-    if (maxTotal === 0) maxTotal = 1; // Prevent division by zero
+    // Handle single data point case
+    if (dataPoints.length === 1) {
+        dataPoints[0].x = svgWidth / 2;
+    }
     
-    // Render chart bars
-    elements.completionChart.innerHTML = dates.map((date, index) => {
-        const stats = getDateStats(date);
-        const completedHeight = stats.total === 0 ? 0 : (stats.completed / maxTotal) * maxHeight;
-        const pendingHeight = stats.total === 0 ? 0 : ((stats.total - stats.completed) / maxTotal) * maxHeight;
-        const isToday = date === today;
+    // Render grid lines (horizontal lines at 25%, 50%, 75%, 100%)
+    const gridLines = [0, 25, 50, 75, 100].map(percent => {
+        const y = padding.top + chartHeight - (percent / 100) * chartHeight;
+        return `<line x1="${padding.left}" y1="${y}" x2="${svgWidth - padding.right}" y2="${y}" 
+                       class="grid-line" stroke="var(--border-color)" stroke-opacity="0.3" stroke-dasharray="4,4"/>
+                <text x="${padding.left - 8}" y="${y + 4}" class="grid-label" 
+                      fill="var(--text-muted)" font-size="10" text-anchor="end">${percent}%</text>`;
+    }).join('');
+    svgGrid.innerHTML = gridLines;
+    
+    // Generate the smooth curve path
+    const linePath = generateSmoothPath(dataPoints, 0.25);
+    const areaPath = generateAreaPath(dataPoints, svgHeight - padding.bottom, 0.25);
+    
+    // Set paths
+    svgLine.setAttribute('d', linePath);
+    svgArea.setAttribute('d', areaPath);
+    
+    // Calculate path length for animation
+    const pathLength = svgLine.getTotalLength ? svgLine.getTotalLength() : 1000;
+    
+    // Set up line animation (draw effect)
+    svgLine.style.strokeDasharray = pathLength;
+    svgLine.style.strokeDashoffset = pathLength;
+    
+    // Set up area animation (fade in)
+    svgArea.style.opacity = '0';
+    
+    // Render data points with different states
+    const pointsHTML = dataPoints.map((point, index) => {
+        let pointClass = 'chart-point';
+        let innerClass = 'point-inner';
         
+        if (point.isFuture) {
+            pointClass += ' future';
+        } else if (point.stats.total === 0) {
+            pointClass += ' no-data';
+        } else if (point.stats.rate === 100) {
+            pointClass += ' completed';
+        } else if (point.stats.rate > 0) {
+            pointClass += ' partial';
+        } else {
+            pointClass += ' missed';
+        }
+        
+        if (point.isToday) {
+            pointClass += ' today';
+        }
+        
+        // Create point with outer ring and inner dot
         return `
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar-stack">
-                    <div class="bar-tooltip">${stats.completed}/${stats.total} (${stats.rate}%)</div>
-                    <div class="bar-pending" style="height: ${pendingHeight}px"></div>
-                    <div class="bar-completed ${isToday ? 'today' : ''}" style="height: ${completedHeight}px"></div>
-                </div>
-            </div>
+            <g class="${pointClass}" data-index="${index}" data-date="${point.date}">
+                <circle class="point-outer" cx="${point.x}" cy="${point.y}" r="12" fill="transparent"/>
+                <circle class="point-ring" cx="${point.x}" cy="${point.y}" r="8" fill="none" stroke-width="2"/>
+                <circle class="${innerClass}" cx="${point.x}" cy="${point.y}" r="5"/>
+            </g>
         `;
     }).join('');
     
+    svgPoints.innerHTML = pointsHTML;
+    
+    // Add hover interactions for tooltips
+    svgPoints.querySelectorAll('.chart-point').forEach(point => {
+        point.addEventListener('mouseenter', (e) => {
+            const index = parseInt(point.dataset.index);
+            const data = dataPoints[index];
+            
+            tooltip.innerHTML = `
+                <div class="tooltip-date">${formatDate(data.date)}</div>
+                <div class="tooltip-stats">${data.stats.completed}/${data.stats.total} completed</div>
+                <div class="tooltip-rate">${data.stats.rate}%</div>
+            `;
+            tooltip.classList.add('visible');
+            
+            // Position tooltip near the point
+            const svgRect = document.getElementById('line-chart-svg').getBoundingClientRect();
+            const pointX = (data.x / svgWidth) * svgRect.width;
+            const pointY = (data.y / svgHeight) * svgRect.height;
+            
+            tooltip.style.left = `${pointX}px`;
+            tooltip.style.top = `${pointY - 60}px`;
+        });
+        
+        point.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('visible');
+        });
+    });
+    
     // Render X-axis labels
-    elements.chartXLabels.innerHTML = dates.map(date => {
+    elements.chartXLabels.innerHTML = dates.map((date, index) => {
         const isToday = date === today;
         const label = currentPeriod === 'week' ? getDayName(date) : new Date(date).getDate();
         return `<span class="x-label ${isToday ? 'today' : ''}">${label}</span>`;
     }).join('');
     
-    // Animate bars after a short delay
-    setTimeout(() => {
-        document.querySelectorAll('.bar-completed, .bar-pending').forEach(bar => {
-            bar.style.opacity = '1';
+    // Trigger animations after a short delay
+    requestAnimationFrame(() => {
+        // Animate line drawing
+        svgLine.style.transition = 'stroke-dashoffset 1.2s ease-out';
+        svgLine.style.strokeDashoffset = '0';
+        
+        // Animate area fade in
+        svgArea.style.transition = 'opacity 0.8s ease-out 0.4s';
+        svgArea.style.opacity = '1';
+        
+        // Animate points appearing (staggered)
+        svgPoints.querySelectorAll('.chart-point').forEach((point, i) => {
+            point.style.opacity = '0';
+            point.style.transform = 'scale(0)';
+            setTimeout(() => {
+                point.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+                point.style.opacity = '1';
+                point.style.transform = 'scale(1)';
+            }, 800 + i * 80);
         });
-    }, 100);
+    });
+}
+
+// ========================================
+// Calendar Month Navigation
+// ========================================
+
+/**
+ * Get the number of days in a given month
+ * Correctly handles leap years
+ * @param {number} year - Full year (e.g., 2026)
+ * @param {number} month - Month index (0-11)
+ * @returns {number} Number of days in the month
+ */
+function getDaysInMonth(year, month) {
+    // new Date(year, month + 1, 0) gives the last day of the month
+    return new Date(year, month + 1, 0).getDate();
 }
 
 /**
- * Render streak calendar
+ * Get the day of week for the first day of a month
+ * @param {number} year - Full year
+ * @param {number} month - Month index (0-11)
+ * @returns {number} Day of week (0 = Sunday, 6 = Saturday)
  */
-function renderStreakCalendar() {
-    const dates = getLastNDays(28); // Last 4 weeks
-    const today = getTodayDate();
-    let perfectDays = 0;
-    let activeDays = 0;
+function getFirstDayOfMonth(year, month) {
+    return new Date(year, month, 1).getDay();
+}
+
+/**
+ * Generate array of date strings for a specific month
+ * @param {number} year - Full year
+ * @param {number} month - Month index (0-11)
+ * @returns {string[]} Array of date strings in YYYY-MM-DD format
+ */
+function getMonthDates(year, month) {
+    const daysInMonth = getDaysInMonth(year, month);
+    const dates = [];
     
-    elements.streakCalendar.innerHTML = dates.map(date => {
-        const stats = getDateStats(date);
-        const isToday = date === today;
-        let className = 'calendar-day';
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        dates.push(date.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+}
+
+/**
+ * Create a cache key for month history
+ * @param {number} year - Full year
+ * @param {number} month - Month index (0-11)
+ * @returns {string} Cache key
+ */
+function getMonthCacheKey(year, month) {
+    return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Check if a given month/year is in the future
+ * @param {number} year - Full year
+ * @param {number} month - Month index (0-11)
+ * @returns {boolean} True if the month is in the future
+ */
+function isFutureMonth(year, month) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    return year > currentYear || (year === currentYear && month > currentMonth);
+}
+
+/**
+ * Update the month label display
+ */
+function updateCalendarMonthLabel() {
+    if (elements.calendarMonthLabel) {
+        elements.calendarMonthLabel.textContent = `${FULL_MONTHS[calendarMonth]} ${calendarYear}`;
+    }
+}
+
+/**
+ * Update navigation button states (disable future months)
+ */
+function updateNavigationButtons() {
+    // Disable next button if next month would be in the future
+    const nextMonth = calendarMonth === 11 ? 0 : calendarMonth + 1;
+    const nextYear = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
+    
+    if (elements.nextMonthBtn) {
+        const isNextFuture = isFutureMonth(nextYear, nextMonth);
+        elements.nextMonthBtn.disabled = isNextFuture;
+        elements.nextMonthBtn.classList.toggle('disabled', isNextFuture);
+    }
+}
+
+/**
+ * Show/hide calendar loading state
+ * @param {boolean} loading - Whether to show loading state
+ */
+function setCalendarLoading(loading) {
+    isCalendarLoading = loading;
+    
+    if (elements.calendarLoading) {
+        elements.calendarLoading.style.display = loading ? 'flex' : 'none';
+    }
+    
+    if (elements.streakCalendar) {
+        elements.streakCalendar.classList.toggle('loading', loading);
+    }
+    
+    // Disable navigation while loading
+    if (elements.prevMonthBtn) {
+        elements.prevMonthBtn.disabled = loading;
+    }
+    if (elements.nextMonthBtn) {
+        elements.nextMonthBtn.disabled = loading;
+    }
+}
+
+/**
+ * Load history data for a specific month from Firebase
+ * Uses caching to avoid redundant requests
+ * 
+ * @param {number} year - Full year
+ * @param {number} month - Month index (0-11)
+ * @returns {Promise<object>} History object keyed by date for the month
+ */
+async function loadMonthHistory(year, month) {
+    const log = getLogger();
+    const cacheKey = getMonthCacheKey(year, month);
+    
+    // Check cache first
+    if (monthHistoryCache[cacheKey]) {
+        log.debug(`Using cached history for ${cacheKey}`);
+        return monthHistoryCache[cacheKey];
+    }
+    
+    // Get Firebase auth
+    const auth = window.firebaseAuth;
+    if (!auth || !auth.currentUser) {
+        log.error('Cannot load month history: No authenticated user');
+        return {};
+    }
+    
+    const userId = auth.currentUser.uid;
+    
+    try {
+        const { collection, query, where, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const db = window.firebaseDb;
         
-        if (stats.total > 0) {
-            activeDays++;
-            if (stats.rate === 100) {
-                className += ' completed';
-                perfectDays++;
-            } else if (stats.rate > 0) {
-                className += ' partial';
-            }
+        if (!db) {
+            log.error('Firestore not initialized');
+            return {};
         }
         
-        if (isToday) className += ' today';
+        // Generate date range for the month
+        const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${getDaysInMonth(year, month)}`;
         
-        return `<div class="${className}" title="${formatDate(date)}: ${stats.rate}%">${new Date(date).getDate()}</div>`;
-    }).join('');
+        log.debug(`Loading history for ${startDate} to ${endDate}`);
+        
+        // Query Firestore for history documents within the month
+        // Path: users/{userId}/history where document ID is date (YYYY-MM-DD)
+        const historyRef = collection(db, 'users', userId, 'history');
+        const snapshot = await getDocs(historyRef);
+        
+        const monthHistory = {};
+        snapshot.forEach(doc => {
+            const docDate = doc.id; // Document ID is the date string
+            // Filter to only include dates within our target month
+            if (docDate >= startDate && docDate <= endDate) {
+                const data = doc.data();
+                if (!data.userId || data.userId === userId) {
+                    monthHistory[docDate] = data.habits || [];
+                }
+            }
+        });
+        
+        // Cache the result
+        monthHistoryCache[cacheKey] = monthHistory;
+        log.dbOperation('load', `history-${cacheKey}`, Object.keys(monthHistory).length);
+        
+        return monthHistory;
+        
+    } catch (error) {
+        log.error(`Error loading month history for ${cacheKey}`, error);
+        return {};
+    }
+}
+
+/**
+ * Get completion stats for a specific date using month-specific history
+ * @param {string} date - Date string (YYYY-MM-DD)
+ * @param {object} monthHistory - History data for the month
+ * @returns {object} Object with total, completed, and rate
+ */
+function getDateStatsFromHistory(date, monthHistory) {
+    const today = getTodayDate();
     
-    // Update stats
-    animateCounter(elements.perfectDays, perfectDays, 600);
-    animateCounter(elements.activeDays, activeDays, 600);
+    // For today, use current habits state
+    if (date === today) {
+        const total = habits.length;
+        const completed = habits.filter(h => h.completed).length;
+        return {
+            total,
+            completed,
+            rate: total === 0 ? 0 : Math.round((completed / total) * 100)
+        };
+    }
+    
+    // For other dates, check the provided history
+    const dayHistory = monthHistory[date] || [];
+    const total = dayHistory.length;
+    const completed = dayHistory.filter(h => h.completed).length;
+    
+    return {
+        total,
+        completed,
+        rate: total === 0 ? 0 : Math.round((completed / total) * 100)
+    };
+}
+
+/**
+ * Navigate to previous month
+ */
+async function goToPreviousMonth() {
+    if (isCalendarLoading) return;
+    
+    calendarMonth--;
+    if (calendarMonth < 0) {
+        calendarMonth = 11;
+        calendarYear--;
+    }
+    
+    await renderStreakCalendar();
+}
+
+/**
+ * Navigate to next month
+ */
+async function goToNextMonth() {
+    if (isCalendarLoading) return;
+    
+    // Check if next month would be in the future
+    const nextMonth = calendarMonth + 1;
+    const nextYear = nextMonth > 11 ? calendarYear + 1 : calendarYear;
+    const normalizedMonth = nextMonth > 11 ? 0 : nextMonth;
+    
+    if (isFutureMonth(nextYear, normalizedMonth)) {
+        return; // Don't navigate to future months
+    }
+    
+    calendarMonth++;
+    if (calendarMonth > 11) {
+        calendarMonth = 0;
+        calendarYear++;
+    }
+    
+    await renderStreakCalendar();
+}
+
+/**
+ * Render streak calendar for the currently selected month
+ * Shows a proper monthly calendar with correct day alignment
+ */
+async function renderStreakCalendar() {
+    const log = getLogger();
+    
+    // Show loading state
+    setCalendarLoading(true);
+    updateCalendarMonthLabel();
+    
+    try {
+        // Load history for the selected month
+        const monthHistory = await loadMonthHistory(calendarYear, calendarMonth);
+        
+        // Also merge in global history if it contains data for this month
+        // (for the current month, live data might be more up-to-date)
+        const cacheKey = getMonthCacheKey(calendarYear, calendarMonth);
+        Object.keys(history).forEach(date => {
+            if (date.startsWith(`${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}`)) {
+                monthHistory[date] = history[date];
+            }
+        });
+        
+        const today = getTodayDate();
+        const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
+        const firstDayOfWeek = getFirstDayOfMonth(calendarYear, calendarMonth);
+        
+        let perfectDays = 0;
+        let activeDays = 0;
+        let totalCompletions = 0;
+        let totalTasks = 0;
+        
+        // Build calendar HTML
+        let calendarHTML = '';
+        
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < firstDayOfWeek; i++) {
+            calendarHTML += '<div class="calendar-day empty"></div>';
+        }
+        
+        // Add cells for each day of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const stats = getDateStatsFromHistory(dateStr, monthHistory);
+            const isToday = dateStr === today;
+            const isFuture = dateStr > today;
+            
+            let className = 'calendar-day';
+            
+            if (isFuture) {
+                // Future days - no status
+                className += ' future';
+            } else if (stats.total > 0) {
+                activeDays++;
+                totalTasks += stats.total;
+                totalCompletions += stats.completed;
+                
+                if (stats.rate === 100) {
+                    className += ' completed';
+                    perfectDays++;
+                } else if (stats.rate > 0) {
+                    className += ' partial';
+                } else {
+                    className += ' missed';
+                }
+            }
+            
+            if (isToday) className += ' today';
+            
+            const tooltipText = isFuture 
+                ? `${formatDate(dateStr)}: Future` 
+                : `${formatDate(dateStr)}: ${stats.rate}% (${stats.completed}/${stats.total})`;
+            
+            calendarHTML += `<div class="${className}" title="${tooltipText}">${day}</div>`;
+        }
+        
+        // Render the calendar
+        elements.streakCalendar.innerHTML = calendarHTML;
+        
+        // Calculate and update stats
+        const monthCompletionRate = totalTasks > 0 
+            ? Math.round((totalCompletions / totalTasks) * 100) 
+            : 0;
+        
+        animateCounter(elements.perfectDays, perfectDays, 600);
+        animateCounter(elements.activeDays, activeDays, 600);
+        
+        if (elements.monthCompletionRate) {
+            elements.monthCompletionRate.textContent = `${monthCompletionRate}%`;
+        }
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+        log.debug(`Calendar rendered for ${FULL_MONTHS[calendarMonth]} ${calendarYear}: ${perfectDays} perfect, ${activeDays} active, ${monthCompletionRate}% rate`);
+        
+    } catch (error) {
+        log.error('Error rendering streak calendar', error);
+        elements.streakCalendar.innerHTML = '<div class="calendar-error">Error loading calendar data</div>';
+    } finally {
+        setCalendarLoading(false);
+    }
+}
+
+/**
+ * Initialize calendar navigation event listeners
+ */
+function initCalendarNavigation() {
+    if (elements.prevMonthBtn) {
+        elements.prevMonthBtn.addEventListener('click', goToPreviousMonth);
+    }
+    
+    if (elements.nextMonthBtn) {
+        elements.nextMonthBtn.addEventListener('click', goToNextMonth);
+    }
+    
+    // Initialize to current month
+    const now = new Date();
+    calendarMonth = now.getMonth();
+    calendarYear = now.getFullYear();
+    
+    updateCalendarMonthLabel();
+    updateNavigationButtons();
 }
 
 /**
@@ -753,6 +1311,9 @@ function initEventListeners() {
             updateThemeIcon(newTheme);
         });
     }
+    
+    // Calendar month navigation
+    initCalendarNavigation();
 }
 
 // ========================================
@@ -766,7 +1327,7 @@ function init() {
     loadTheme();
     initEventListeners();
     // Data loading happens via initStatsData() after auth
-    console.log('📊 Statistics page UI initialized, waiting for auth...');
+    getLogger().debug('Statistics page UI initialized, waiting for auth');
 }
 
 /**
@@ -774,7 +1335,7 @@ function init() {
  * This ensures data is loaded ONLY for authenticated users
  */
 window.initStatsData = async function() {
-    console.log('🔐 User authenticated, loading stats data...');
+    getLogger().debug('User authenticated, loading stats data');
     await loadFromFirestore();
 };
 

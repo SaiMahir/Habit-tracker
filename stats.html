@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com/firebasejs/; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Statistics - Habit Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="stats.css">
@@ -47,6 +52,9 @@
                                 <span class="dropdown-email" id="dropdown-email">user@email.com</span>
                             </div>
                             <div class="dropdown-divider"></div>
+                            <button class="dropdown-item settings" id="settings-btn">
+                                <span>⚙️</span> Settings
+                            </button>
                             <button class="dropdown-item logout" id="logout-btn">
                                 <span>🚪</span> Logout
                             </button>
@@ -177,13 +185,44 @@
                         </div>
                         <div class="legend-item">
                             <span class="legend-color pending"></span>
-                            <span>Pending</span>
+                            <span>Pending/No Data</span>
                         </div>
                     </div>
                 </div>
                 <div class="chart-wrapper">
-                    <div class="bar-chart" id="completion-chart">
-                        <!-- Chart bars will be rendered here -->
+                    <!-- Line Chart Container -->
+                    <div class="line-chart-container" id="completion-chart">
+                        <svg class="line-chart-svg" id="line-chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+                            <!-- Grid lines (rendered dynamically) -->
+                            <g class="chart-grid" id="chart-grid"></g>
+                            <!-- Main gradient line -->
+                            <defs>
+                                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color: var(--accent-purple); stop-opacity: 1" />
+                                    <stop offset="50%" style="stop-color: var(--success-color); stop-opacity: 1" />
+                                    <stop offset="100%" style="stop-color: var(--accent-teal); stop-opacity: 1" />
+                                </linearGradient>
+                                <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color: var(--success-color); stop-opacity: 0.3" />
+                                    <stop offset="100%" style="stop-color: var(--success-color); stop-opacity: 0" />
+                                </linearGradient>
+                                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            <!-- Area fill under line -->
+                            <path class="line-chart-area" id="chart-area" fill="url(#areaGradient)"></path>
+                            <!-- The main line path -->
+                            <path class="line-chart-path" id="chart-line" fill="none" stroke="url(#lineGradient)" stroke-width="3" filter="url(#glow)"></path>
+                            <!-- Data points -->
+                            <g class="chart-points" id="chart-points"></g>
+                        </svg>
+                        <!-- Tooltip -->
+                        <div class="line-chart-tooltip" id="chart-tooltip"></div>
                     </div>
                     <div class="chart-x-axis" id="chart-x-labels">
                         <!-- X-axis labels will be rendered here -->
@@ -235,6 +274,30 @@
                             Streak History
                         </h3>
                         <div class="streak-visual">
+                            <!-- Month Navigation Header -->
+                            <div class="calendar-header">
+                                <button class="calendar-nav-btn" id="prev-month-btn" title="Previous Month">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="calendar-month-year">
+                                    <span id="calendar-month-label">January 2026</span>
+                                    <div class="calendar-loading" id="calendar-loading" style="display: none;">
+                                        <div class="mini-spinner"></div>
+                                    </div>
+                                </div>
+                                <button class="calendar-nav-btn" id="next-month-btn" title="Next Month">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Weekday Labels -->
+                            <div class="calendar-weekdays">
+                                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                            </div>
+                            <!-- Calendar Grid -->
                             <div class="streak-calendar" id="streak-calendar">
                                 <!-- Calendar will be rendered here -->
                             </div>
@@ -246,6 +309,10 @@
                                 <div class="streak-stat">
                                     <span class="streak-stat-value" id="active-days">0</span>
                                     <span class="streak-stat-label">Active Days</span>
+                                </div>
+                                <div class="streak-stat">
+                                    <span class="streak-stat-value" id="month-completion-rate">0%</span>
+                                    <span class="streak-stat-label">Completion Rate</span>
                                 </div>
                             </div>
                         </div>
@@ -308,6 +375,112 @@
         </footer>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settings-modal">
+        <div class="settings-modal-content">
+            <div class="settings-modal-header">
+                <h2><span>⚙️</span> Settings</h2>
+                <button class="settings-close-btn" id="settings-close">×</button>
+            </div>
+            
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="username">
+                    <span>👤</span> Username
+                </button>
+                <button class="settings-tab" data-tab="password">
+                    <span>🔒</span> Password
+                </button>
+            </div>
+            
+            <!-- Settings Message -->
+            <div class="settings-message" id="settings-message"></div>
+            
+            <!-- Username Tab -->
+            <div class="settings-tab-content active" id="username-tab">
+                <form id="username-form">
+                    <div class="settings-form-group">
+                        <label for="new-username">New Username</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="new-username" 
+                                class="settings-input"
+                                placeholder="Enter new username"
+                                autocomplete="username"
+                                maxlength="50"
+                            >
+                        </div>
+                    </div>
+                    <button type="submit" class="settings-btn settings-btn-primary" id="save-username-btn">
+                        <span>💾</span> Save Username
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Password Tab -->
+            <div class="settings-tab-content" id="password-tab">
+                <form id="password-form">
+                    <div class="settings-form-group">
+                        <label for="current-password">Current Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="current-password" 
+                                class="settings-input"
+                                placeholder="Enter current password"
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="current-password">👁️</button>
+                        </div>
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="new-password">New Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="new-password" 
+                                class="settings-input"
+                                placeholder="Enter new password"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="new-password">👁️</button>
+                        </div>
+                        <div class="settings-password-strength">
+                            <div class="settings-strength-bar">
+                                <div class="strength-fill" id="settings-strength-fill"></div>
+                            </div>
+                            <span class="strength-text" id="settings-strength-text">Password strength</span>
+                        </div>
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="confirm-new-password">Confirm New Password</label>
+                        <div class="settings-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirm-new-password" 
+                                class="settings-input"
+                                placeholder="Confirm new password"
+                                autocomplete="new-password"
+                            >
+                            <button type="button" class="settings-password-toggle" data-target="confirm-new-password">👁️</button>
+                        </div>
+                        <div class="password-match-indicator" id="password-match-indicator"></div>
+                    </div>
+                    <button type="submit" class="settings-btn settings-btn-primary" id="save-password-btn">
+                        <span>🔐</span> Update Password
+                    </button>
+                </form>
+            </div>
+            
+            <div class="settings-modal-footer">
+                <button type="button" class="settings-btn settings-btn-secondary" id="settings-cancel">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Auth Check (MUST LOAD BEFORE stats.js) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -358,6 +531,9 @@
             greetingEl.textContent = greeting;
         }
         
+        // Expose globally for settings module
+        window.updateHeaderGreeting = updateHeaderGreeting;
+        
         // Header streak function
         function updateHeaderStreak(streak = 0) {
             const streakEl = document.getElementById('header-streak');
@@ -377,7 +553,20 @@
             }
         }
         
-        console.log("📊 Stats page - checking auth...");
+        // Get Logger (falls back to no-op if not loaded)
+        const getLogger = () => window.Logger || {
+            debug: () => {},
+            info: () => {},
+            warn: () => {},
+            error: (msg, err) => console.error(msg, err),
+            authSuccess: () => {},
+            authFailure: () => {},
+            dbOperation: () => {},
+            maskUID: (uid) => uid ? `${uid.slice(0,4)}...${uid.slice(-4)}` : 'unknown'
+        };
+        
+        const log = getLogger();
+        log.debug('Stats page - checking auth');
         
         // Flag to track if we've already handled auth
         let authHandled = false;
@@ -387,7 +576,8 @@
             // Prevent multiple redirects
             if (authHandled && !user) return;
             
-            console.log("📊 Auth state changed:", user ? user.email : "no user");
+            const log = getLogger();
+            log.debug('Auth state changed (stats page)');
             
             const loadingScreen = document.getElementById('auth-loading');
             const appContainer = document.getElementById('app-container');
@@ -395,8 +585,7 @@
             if (user) {
                 // User is signed in
                 authHandled = true;
-                console.log("✅ User authenticated on stats page");
-                console.log("👤 User ID:", user.uid);
+                log.authSuccess('session-restored');
                 loadingScreen.style.display = 'none';
                 appContainer.style.display = 'block';
                 
@@ -420,11 +609,16 @@
                 if (window.initStatsData) {
                     await window.initStatsData();
                 }
+                
+                // Initialize settings module
+                if (window.initSettings) {
+                    window.initSettings();
+                }
             } else {
                 // Wait a moment for Firebase to restore session
                 setTimeout(() => {
                     if (!authHandled && !auth.currentUser) {
-                        console.log("❌ No user on stats page, redirecting...");
+                        log.debug('No user on stats page, redirecting');
                         window.location.href = 'login.html';
                     }
                 }, 1500);
@@ -450,12 +644,14 @@
                 await signOut(auth);
                 window.location.href = 'login.html';
             } catch (error) {
-                console.error('Logout error:', error);
+                getLogger().error('Logout error', error);
             }
         });
     </script>
     
+    <script src="logger.js"></script>
     <script src="firebase-db.js"></script>
+    <script src="settings.js"></script>
     <script src="stats.js"></script>
 </body>
 </html>
